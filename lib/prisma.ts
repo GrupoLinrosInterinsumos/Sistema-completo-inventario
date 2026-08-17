@@ -8,8 +8,12 @@ import { PrismaPg } from "@prisma/adapter-pg";
 const databaseUrl = process.env.DATABASE_URL ?? "file:./dev.db";
 const esPostgres = databaseUrl.startsWith("postgres://") || databaseUrl.startsWith("postgresql://");
 
+// Render (y la mayoría de Postgres administrados) exige SSL incluso cuando
+// la URL de conexión no trae `?sslmode=...` — sin esto, la conexión se
+// rechaza y el error queda enmascarado como "credenciales incorrectas" en
+// el login. Se fuerza explícitamente en vez de depender del formato de la URL.
 const adapter = esPostgres
-  ? new PrismaPg({ connectionString: databaseUrl })
+  ? new PrismaPg({ connectionString: databaseUrl, ssl: { rejectUnauthorized: false } })
   : new PrismaBetterSqlite3({ url: databaseUrl });
 
 const globalForPrisma = globalThis as unknown as {
