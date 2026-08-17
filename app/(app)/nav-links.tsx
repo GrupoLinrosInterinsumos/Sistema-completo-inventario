@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { NavIcon } from "@/lib/nav";
+import { sistemaDePathname, type NavIcon, type Sistema } from "@/lib/nav";
 import { NavIconGlyph } from "./nav-icons";
 
-type NavItem = { href: string; label: string; icon: NavIcon };
+type NavItem = { href: string; label: string; icon: NavIcon; sistema: Sistema };
 
 export function NavLinks({
   items,
@@ -15,13 +15,21 @@ export function NavLinks({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const sistemaActual = sistemaDePathname(pathname);
+  const itemsDelSistema = items.filter((item) => item.sistema === sistemaActual);
+
+  const coincidencias = itemsDelSistema.filter(
+    (item) => pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`))
+  );
+  const masEspecifico =
+    coincidencias.length > 0
+      ? coincidencias.reduce((a, b) => (b.href.length > a.href.length ? b : a))
+      : undefined;
 
   return (
     <>
-      {items.map((item) => {
-        const activo =
-          pathname === item.href ||
-          (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
+      {itemsDelSistema.map((item) => {
+        const activo = item.href === masEspecifico?.href;
 
         return (
           <Link

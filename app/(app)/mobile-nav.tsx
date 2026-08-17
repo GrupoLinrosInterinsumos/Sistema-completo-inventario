@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { NavIcon } from "@/lib/nav";
+import type { NavIcon, Sistema } from "@/lib/nav";
 import { Logo } from "@/app/logo";
 import { Avatar } from "@/app/components/ui/avatar";
 import { NavLinks } from "./nav-links";
 
-type NavItem = { href: string; label: string; icon: NavIcon };
+type NavItem = { href: string; label: string; icon: NavIcon; sistema: Sistema };
 
 type Props = {
   items: NavItem[];
