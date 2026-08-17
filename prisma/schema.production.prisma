@@ -1,0 +1,208 @@
+// Esquema de PRODUCCIÓN (Render + Postgres). Idéntico a schema.prisma salvo
+// el datasource — Prisma no permite un provider dinámico en un solo archivo.
+// Si tocas los modelos en schema.prisma, replica el cambio aquí también.
+//
+// Uso (Render, build command):
+//   npx prisma generate --schema=prisma/schema.production.prisma
+//   npx prisma migrate deploy --schema=prisma/schema.production.prisma
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Rol {
+  ALMACEN
+  SUPERVISOR
+}
+
+enum NombreAlmacen {
+  CRAMER
+  SACCO
+}
+
+enum TipoUbicacion {
+  PALETA
+  SLOT
+}
+
+enum EstadoIngreso {
+  BORRADOR
+  DESGLOSADO
+  CONFIRMADO
+}
+
+enum EstadoDesglose {
+  PENDIENTE
+  PARCIAL
+  COMPLETO
+}
+
+enum TipoMovimiento {
+  INGRESO
+  SALIDA
+  AJUSTE
+  ANULACION
+}
+
+model Usuario {
+  id           String   @id @default(cuid())
+  nombre       String
+  email        String   @unique
+  passwordHash String
+  rol          Rol
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  ingresos    Ingreso[]
+  movimientos Movimiento[]
+}
+
+model Almacen {
+  id            String        @id @default(cuid())
+  nombre        NombreAlmacen @unique
+  tipoUbicacion TipoUbicacion
+  contadorFolio Int           @default(0)
+
+  ingresos         Ingreso[]
+  inventarioActual InventarioActual[]
+  productos        Producto[]
+}
+
+model Producto {
+  id           String   @id @default(cuid())
+  nombreSabor  String
+  codigo       String   @unique
+  presentacion String
+  almacenId    String
+  almacen      Almacen  @relation(fields: [almacenId], references: [id], onDelete: Restrict)
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  ingresoDetalles    IngresoDetalle[]
+  inventarioDesglose InventarioDesglose[]
+  inventarioActual   InventarioActual[]
+  movimientos        Movimiento[]
+}
+
+// Cabecera de una "ficha" de Registro de Ingreso (un ingreso = un día/registro para un almacén)
+model Ingreso {
+  id            String        @id @default(cuid())
+  fecha         DateTime      @default(now())
+  nHoja         Int
+  almacenId     String
+  almacen       Almacen       @relation(fields: [almacenId], references: [id], onDelete: Restrict)
+  responsableId String
+  responsable   Usuario       @relation(fields: [responsableId], references: [id], onDelete: Restrict)
+  guiaTraslado  String?
+  estado        EstadoIngreso @default(BORRADOR)
+  createdAt     DateTime      @default(now())
+
+  detalles IngresoDetalle[]
+
+  @@unique([almacenId, nHoja])
+}
+
+// Líneas de la ficha "Registro de Ingreso" (cantidad bruta por producto/lote)
+model IngresoDetalle {
+  id             String         @id @default(cuid())
+  ingresoId      String
+  ingreso        Ingreso        @relation(fields: [ingresoId], references: [id], onDelete: Restrict)
+  productoId     String
+  producto       Producto       @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  lote           String
+  fProduccion    DateTime
+  fVencimiento   DateTime
+  cantidadTotal  Float
+  unidad         String
+  estadoDesglose EstadoDesglose @default(PENDIENTE)
+
+  desgloses InventarioDesglose[]
+}
+
+// Líneas de la ficha "Registro de Inventario": el detalle repartido en paletas/slots y cajas
+model InventarioDesglose {
+  id               String   @id @default(cuid())
+  ingresoDetalleId String
+  ingresoDetalle   IngresoDetalle @relation(fields: [ingresoDetalleId], references: [id], onDelete: Restrict)
+  productoId       String
+  producto         Producto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  lote             String
+  fProduccion      DateTime
+  fVencimiento     DateTime
+  ubicacionNumero  String
+  nCaja            String
+  cantidadKg       Float
+  subidoAStock     Boolean  @default(false)
+  createdAt        DateTime @default(now())
+}
+
+// Stock consolidado y vivo, es lo que consulta el buscador
+model InventarioActual {
+  id                 String   @id @default(cuid())
+  productoId         String
+  producto           Producto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  almacenId          String
+  almacen            Almacen  @relation(fields: [almacenId], references: [id], onDelete: Restrict)
+  ubicacionNumero    String
+  nCaja              String
+  lote               String
+  fProduccion        DateTime
+  fVencimiento       DateTime
+  cantidadDisponible Float
+
+  movimientos Movimiento[]
+
+  // Regla clave de trazabilidad (sección 4): una caja física es única por
+  // producto + almacén + ubicación + n° caja + lote. Mismo lote en la misma
+  // caja suma cantidad; lote distinto en la misma caja es una fila aparte.
+  @@unique([productoId, almacenId, ubicacionNumero, nCaja, lote])
+}
+
+// Kardex: historial de todo lo que entra y sale
+model Movimiento {
+  id                 String            @id @default(cuid())
+  tipo               TipoMovimiento
+  inventarioActualId String?
+  inventarioActual   InventarioActual? @relation(fields: [inventarioActualId], references: [id], onDelete: Restrict)
+  productoId         String
+  producto           Producto          @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  cantidad           Float
+  usuarioId          String
+  usuario            Usuario           @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  fechaHora          DateTime          @default(now())
+  referencia         String?
+  observacion        String?
+}
+
+// --- Sistema "Ubicación" (racks) ---
+// Zona física independiente de CRAMER/SACCO: no controla cantidades,
+// solo dónde está cada producto físicamente para poder ubicarlo.
+
+model Rack {
+  id       String @id @default(cuid())
+  numero   Int    @unique
+  filaMin  String
+  filaMax  String
+  columnas Int
+
+  stock UbicacionStock[]
+}
+
+model UbicacionStock {
+  id             String   @id @default(cuid())
+  nombreProducto String
+  rackId         String
+  rack           Rack     @relation(fields: [rackId], references: [id], onDelete: Restrict)
+  fila           String
+  columna        Int
+  ordenIngreso   Int
+  createdAt      DateTime @default(now())
+
+  // Una celda física (rack + fila + columna) solo puede tener un producto a la vez.
+  @@unique([rackId, fila, columna])
+}
