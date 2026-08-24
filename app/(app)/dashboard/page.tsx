@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { diaCortoLima, fechaLimaISO, formatFechaUTC } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { sistemaAlmacenActual } from "@/lib/sistema-almacen";
 import { labelUbicacion } from "@/lib/ubicacion";
 import { rangoProximosAVencer } from "@/lib/vencimientos";
 import { ActivityChart } from "@/app/components/ui/activity-chart";
@@ -12,29 +13,36 @@ import { IconAlertTriangle, IconClipboardCheck, IconPackage } from "@/app/compon
 
 export default async function DashboardPage() {
   const session = await auth();
+  const sistema = await sistemaAlmacenActual();
   const now = new Date();
   const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
   const hace7Dias = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
+  const filtroAlmacen = sistema ? { almacen: { nombre: sistema } } : {};
+
   const [skusActivos, skusNuevosEsteMes, lotesPorVencer, ingresosPorDesglosar, porVencer, movimientosSemana] =
     await Promise.all([
-      prisma.producto.count({ where: { activo: true } }),
-      prisma.producto.count({ where: { activo: true, createdAt: { gte: inicioMes } } }),
+      prisma.producto.count({ where: { activo: true, ...filtroAlmacen } }),
+      prisma.producto.count({ where: { activo: true, createdAt: { gte: inicioMes }, ...filtroAlmacen } }),
       prisma.inventarioActual.count({
-        where: { cantidadDisponible: { gt: 0 }, fVencimiento: rangoProximosAVencer() },
+        where: { cantidadDisponible: { gt: 0 }, fVencimiento: rangoProximosAVencer(), ...filtroAlmacen },
       }),
       prisma.ingreso.findMany({
-        where: { estado: { in: ["CONFIRMADO", "DESGLOSADO"] } },
+        where: { estado: { in: ["CONFIRMADO", "DESGLOSADO"] }, ...filtroAlmacen },
         select: { detalles: { select: { estadoDesglose: true } } },
       }),
       prisma.inventarioActual.findMany({
-        where: { cantidadDisponible: { gt: 0 }, fVencimiento: rangoProximosAVencer() },
+        where: { cantidadDisponible: { gt: 0 }, fVencimiento: rangoProximosAVencer(), ...filtroAlmacen },
         include: { producto: true, almacen: true },
         orderBy: { fVencimiento: "asc" },
         take: 6,
       }),
       prisma.movimiento.findMany({
-        where: { tipo: { in: ["INGRESO", "SALIDA"] }, fechaHora: { gte: hace7Dias } },
+        where: {
+          tipo: { in: ["INGRESO", "SALIDA"] },
+          fechaHora: { gte: hace7Dias },
+          ...(sistema ? { producto: { almacen: { nombre: sistema } } } : {}),
+        },
         select: { tipo: true, cantidad: true, fechaHora: true },
       }),
     ]);
@@ -58,7 +66,9 @@ export default async function DashboardPage() {
     <div className="max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-headline-md text-on-surface">Resumen General</h1>
+          <h1 className="text-headline-md text-on-surface">
+            Resumen General{sistema ? ` — ${sistema}` : ""}
+          </h1>
           <p className="mt-1 text-body-sm text-on-surface-variant">
             Hola, {session?.user.name}. Estado actual del inventario y operaciones en curso.
           </p>

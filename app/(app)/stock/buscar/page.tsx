@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { labelUbicacion } from "@/lib/ubicacion";
 import { condicionesPorPalabra } from "@/lib/search";
 import { sistemaAlmacenActual } from "@/lib/sistema-almacen";
+import { camaraFisica, puertasDeCamaraFisica } from "@/lib/sacco-refrigeradoras";
 import { estadoVencimiento } from "@/lib/vencimientos";
 import { IconSearch } from "@/app/components/ui/icons";
 import { Button } from "@/app/components/ui/button";
@@ -39,21 +40,24 @@ export default async function BuscarStockPage({
 
   // Todas las cajas vivas en las mismas ubicaciones que los resultados, para
   // poder mostrar "qué más hay en esta paleta/refrigeradora" sin N+1 queries.
-  const clavesUbicacion = [...new Set(filas.map((f) => `${f.almacenId}|${f.ubicacionNumero}`))];
+  // En SACCO, algunas "cámaras" son en realidad la misma refrigeradora física
+  // con 2 puertas (CC1+CC2, CC3+CC4) — se agrupan por cámara física, no por
+  // puerta, para que los hermanos no se corten a mitad de cámara.
+  const clavesUbicacion = [...new Set(filas.map((f) => `${f.almacenId}|${camaraFisica(f.ubicacionNumero)}`))];
   const hermanosPorClave = new Map<string, { nCaja: string; nombreSabor: string }[]>();
   if (clavesUbicacion.length > 0) {
     const todasLasCajas = await prisma.inventarioActual.findMany({
       where: {
         cantidadDisponible: { gt: 0 },
         OR: clavesUbicacion.map((clave) => {
-          const [almacenId, ubicacionNumero] = clave.split("|");
-          return { almacenId, ubicacionNumero };
+          const [almacenId, camara] = clave.split("|");
+          return { almacenId, ubicacionNumero: { in: puertasDeCamaraFisica(camara) } };
         }),
       },
       select: { almacenId: true, ubicacionNumero: true, nCaja: true, producto: { select: { nombreSabor: true } } },
     });
     for (const c of todasLasCajas) {
-      const clave = `${c.almacenId}|${c.ubicacionNumero}`;
+      const clave = `${c.almacenId}|${camaraFisica(c.ubicacionNumero)}`;
       const lista = hermanosPorClave.get(clave) ?? [];
       lista.push({ nCaja: c.nCaja, nombreSabor: c.producto.nombreSabor });
       hermanosPorClave.set(clave, lista);
@@ -120,7 +124,7 @@ export default async function BuscarStockPage({
                 cantidadDisponible={fila.cantidadDisponible}
                 unidad="kg"
                 estado={estadoVencimiento(fila.fProduccion, fila.fVencimiento)}
-                hermanos={hermanosPorClave.get(`${fila.almacenId}|${fila.ubicacionNumero}`) ?? []}
+                hermanos={hermanosPorClave.get(`${fila.almacenId}|${camaraFisica(fila.ubicacionNumero)}`) ?? []}
               />
             ))}
           </ResultsGrid>

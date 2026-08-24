@@ -11,6 +11,7 @@ import type { EstadoVencimiento } from "@/lib/vencimientos";
 import { retirarStockAction } from "./actions";
 import { UbicacionChips } from "./ubicacion-chips";
 import { FridgeIcon } from "./fridge-icon";
+import { PalletIcon } from "./pallet-icon";
 
 const CHIP_ICON: Record<EstadoVencimiento["chipVariant"], React.ReactNode> = {
   danger: <IconAlertTriangle size={12} />,
@@ -48,6 +49,7 @@ export function RetirarStock({
   const router = useRouter();
   const idPrefix = useId();
   const esRefrigeradora = ubicacionLabel.toLowerCase().includes("refrigeradora");
+  const esPaleta = ubicacionLabel.toLowerCase().includes("paleta");
   const [abierto, setAbierto] = useState(false);
   const [cantidad, setCantidad] = useState("");
   const [motivo, setMotivo] = useState("");
@@ -90,6 +92,7 @@ export function RetirarStock({
 
         <div className="mt-3 flex items-start gap-3">
           {esRefrigeradora ? <FridgeIcon size={36} /> : null}
+          {esPaleta ? <PalletIcon numero={ubicacionNumero} caja={nCaja} size={36} /> : null}
           <div className="grid flex-1 grid-cols-2 gap-2 text-sm">
             <div>
               <p className="text-xs text-on-surface-variant">Ubicación</p>

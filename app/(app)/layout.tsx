@@ -21,7 +21,7 @@ export default async function AppLayout({
   const items = NAV_ITEMS.filter((item) => item.roles.includes(rol));
   const rolLabel = rol === "SUPERVISOR" ? "Supervisor / Admin" : "Almacén";
   const userName = session.user.name ?? "";
-  const sistema = rol === "ALMACEN" ? await sistemaAlmacenActual() : null;
+  const sistema = await sistemaAlmacenActual();
 
   return (
     <div className="min-h-screen lg:flex">
