@@ -12,6 +12,7 @@ type Props = {
   label: string;
   nCajaActual: string;
   hermanos: Hermano[];
+  abiertoPorDefecto?: boolean;
 };
 
 // Orden natural: números antes que letras, números en orden numérico (no
@@ -27,9 +28,9 @@ function compararNCaja(a: string, b: string) {
   return a.localeCompare(b);
 }
 
-export function UbicacionChips({ label, nCajaActual, hermanos }: Props) {
+export function UbicacionChips({ label, nCajaActual, hermanos, abiertoPorDefecto = false }: Props) {
   const router = useRouter();
-  const [abierto, setAbierto] = useState(false);
+  const [abierto, setAbierto] = useState(abiertoPorDefecto);
   const [seleccionada, setSeleccionada] = useState<Posicion | null>(null);
 
   if (hermanos.length <= 1) return null;

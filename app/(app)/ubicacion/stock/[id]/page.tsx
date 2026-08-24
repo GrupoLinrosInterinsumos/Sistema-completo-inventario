@@ -65,6 +65,7 @@ export default async function UbicacionStockDetallePage({
           label={`${labelUbicacion(item.almacen.tipoUbicacion)} ${item.ubicacionNumero}`}
           nCajaActual={item.nCaja}
           hermanos={hermanos}
+          abiertoPorDefecto
         />
       </div>
 
