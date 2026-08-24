@@ -31,9 +31,9 @@ export default async function UbicacionStockDetallePage({
       almacenId: item.almacenId,
       ubicacionNumero: esSacco ? { in: puertasDeCamaraFisica(claveHermanos) } : item.ubicacionNumero,
     },
-    select: { nCaja: true, producto: { select: { nombreSabor: true } } },
+    select: { id: true, nCaja: true, producto: { select: { nombreSabor: true } } },
   });
-  const hermanos = hermanosRaw.map((h) => ({ nCaja: h.nCaja, nombreSabor: h.producto.nombreSabor }));
+  const hermanos = hermanosRaw.map((h) => ({ id: h.id, nCaja: h.nCaja, nombreSabor: h.producto.nombreSabor }));
 
   return (
     <div className="max-w-3xl">

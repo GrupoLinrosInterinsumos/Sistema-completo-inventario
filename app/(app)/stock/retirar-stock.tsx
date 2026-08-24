@@ -19,7 +19,7 @@ const CHIP_ICON: Record<EstadoVencimiento["chipVariant"], React.ReactNode> = {
   info: <IconCheck size={12} />,
 };
 
-type Hermano = { nCaja: string; nombreSabor: string };
+type Hermano = { id: string; nCaja: string; nombreSabor: string };
 
 type Props = {
   inventarioActualId: string;

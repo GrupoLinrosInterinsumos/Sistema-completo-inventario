@@ -44,7 +44,7 @@ export default async function BuscarStockPage({
   // con 2 puertas (CC1+CC2, CC3+CC4) — se agrupan por cámara física, no por
   // puerta, para que los hermanos no se corten a mitad de cámara.
   const clavesUbicacion = [...new Set(filas.map((f) => `${f.almacenId}|${camaraFisica(f.ubicacionNumero)}`))];
-  const hermanosPorClave = new Map<string, { nCaja: string; nombreSabor: string }[]>();
+  const hermanosPorClave = new Map<string, { id: string; nCaja: string; nombreSabor: string }[]>();
   if (clavesUbicacion.length > 0) {
     const todasLasCajas = await prisma.inventarioActual.findMany({
       where: {
@@ -54,12 +54,12 @@ export default async function BuscarStockPage({
           return { almacenId, ubicacionNumero: { in: puertasDeCamaraFisica(camara) } };
         }),
       },
-      select: { almacenId: true, ubicacionNumero: true, nCaja: true, producto: { select: { nombreSabor: true } } },
+      select: { id: true, almacenId: true, ubicacionNumero: true, nCaja: true, producto: { select: { nombreSabor: true } } },
     });
     for (const c of todasLasCajas) {
       const clave = `${c.almacenId}|${camaraFisica(c.ubicacionNumero)}`;
       const lista = hermanosPorClave.get(clave) ?? [];
-      lista.push({ nCaja: c.nCaja, nombreSabor: c.producto.nombreSabor });
+      lista.push({ id: c.id, nCaja: c.nCaja, nombreSabor: c.producto.nombreSabor });
       hermanosPorClave.set(clave, lista);
     }
   }

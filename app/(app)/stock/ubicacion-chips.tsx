@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { RackFrame } from "../ubicacion/rack-frame";
 
-type Hermano = { nCaja: string; nombreSabor: string };
+type Hermano = { id: string; nCaja: string; nombreSabor: string };
+type Posicion = { nCaja: string; items: Hermano[] };
 
 type Props = {
   label: string;
@@ -25,11 +28,31 @@ function compararNCaja(a: string, b: string) {
 }
 
 export function UbicacionChips({ label, nCajaActual, hermanos }: Props) {
+  const router = useRouter();
   const [abierto, setAbierto] = useState(false);
+  const [seleccionada, setSeleccionada] = useState<Posicion | null>(null);
 
   if (hermanos.length <= 1) return null;
 
-  const ordenados = [...hermanos].sort((a, b) => compararNCaja(a.nCaja, b.nCaja));
+  // Una misma posición puede tener más de un producto (varios lotes) — se
+  // agrupa para no repetir la celda, y al entrar se ve cuál es cuál.
+  const porPosicion = new Map<string, Hermano[]>();
+  for (const h of hermanos) {
+    const lista = porPosicion.get(h.nCaja) ?? [];
+    lista.push(h);
+    porPosicion.set(h.nCaja, lista);
+  }
+  const posiciones: Posicion[] = [...porPosicion.entries()]
+    .map(([nCaja, items]) => ({ nCaja, items }))
+    .sort((a, b) => compararNCaja(a.nCaja, b.nCaja));
+
+  function elegir(pos: Posicion) {
+    if (pos.items.length === 1) {
+      router.push(`/ubicacion/stock/${pos.items[0].id}`);
+      return;
+    }
+    setSeleccionada(pos);
+  }
 
   return (
     <div className="mt-3 border-t border-outline-variant pt-3">
@@ -38,7 +61,7 @@ export function UbicacionChips({ label, nCajaActual, hermanos }: Props) {
         onClick={() => setAbierto((v) => !v)}
         className="text-xs font-medium text-primary transition-colors hover:text-primary-container"
       >
-        {abierto ? "Ocultar" : "Ver"} {label.toLowerCase()} completa ({hermanos.length} cajas)
+        {abierto ? "Ocultar" : "Ver"} {label.toLowerCase()} completa ({posiciones.length} posiciones)
       </button>
 
       {abierto ? (
@@ -49,27 +72,51 @@ export function UbicacionChips({ label, nCajaActual, hermanos }: Props) {
                 className="grid gap-1"
                 style={{ gridTemplateColumns: "repeat(auto-fill, minmax(2.25rem, 1fr))" }}
               >
-                {ordenados.map((h, i) => {
-                  const actual = h.nCaja === nCajaActual;
-                  const divisor = (i + 1) % 5 === 0 && i !== ordenados.length - 1;
+                {posiciones.map((pos, i) => {
+                  const actual = pos.nCaja === nCajaActual;
+                  const divisor = (i + 1) % 5 === 0 && i !== posiciones.length - 1;
                   return (
-                    <span
-                      key={`${h.nCaja}-${i}`}
-                      title={h.nombreSabor}
+                    <button
+                      type="button"
+                      key={pos.nCaja}
+                      onClick={() => elegir(pos)}
+                      title={pos.items.map((it) => it.nombreSabor).join(", ")}
                       style={divisor ? { boxShadow: "inset -2px 0 0 0 var(--color-primary)" } : undefined}
-                      className={`flex items-center justify-center rounded px-1.5 py-1.5 text-[11px] font-medium ${
+                      className={`flex items-center justify-center rounded px-1.5 py-1.5 text-[11px] font-medium transition-transform hover:scale-110 active:scale-95 ${
                         actual
                           ? "bg-primary text-on-primary ring-2 ring-primary-container ring-offset-1"
-                          : "bg-surface-container text-on-surface-variant"
+                          : "bg-surface-container text-on-surface-variant hover:bg-primary-fixed"
                       }`}
                     >
-                      {h.nCaja}
-                    </span>
+                      {pos.nCaja}
+                      {pos.items.length > 1 ? <span className="ml-0.5 text-[9px]">×{pos.items.length}</span> : null}
+                    </button>
                   );
                 })}
               </div>
             </div>
           </RackFrame>
+
+          {seleccionada ? (
+            <div className="mt-3 rounded-card border border-outline-variant bg-surface-container-lowest p-4">
+              <p className="text-sm font-semibold text-on-surface">
+                {label} {seleccionada.nCaja} — {seleccionada.items.length} producto
+                {seleccionada.items.length === 1 ? "" : "s"}
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {seleccionada.items.map((it) => (
+                  <li key={it.id}>
+                    <Link
+                      href={`/ubicacion/stock/${it.id}`}
+                      className="block rounded-md bg-surface-container px-3 py-2 text-sm text-on-surface transition-colors hover:bg-primary-fixed"
+                    >
+                      {it.nombreSabor}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
