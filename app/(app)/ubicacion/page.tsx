@@ -63,7 +63,7 @@ export default async function UbicacionPage({
       id: f.id,
       nombreProducto: f.producto.nombreSabor,
       ubicacion: `${labelUbicacion(f.almacen.tipoUbicacion)} ${f.ubicacionNumero} / Caja ${f.nCaja}`,
-      href: `/stock/buscar?q=${encodeURIComponent(f.producto.codigo)}`,
+      href: `/ubicacion/stock/${f.id}`,
       origen: f.almacen.nombre as "CRAMER" | "SACCO",
     })),
   ];
