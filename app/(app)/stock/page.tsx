@@ -1,5 +1,6 @@
 import { formatFechaUTC } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { condicionesPorPalabra } from "@/lib/search";
 import { labelUbicacion } from "@/lib/ubicacion";
 import { rangoProximosAVencer } from "@/lib/vencimientos";
 import { Badge } from "@/app/components/ui/badge";
@@ -19,7 +20,10 @@ export default async function InventarioActualPage({
   if (almacenId) where.almacenId = almacenId;
   if (q) {
     where.producto = {
-      OR: [{ nombreSabor: { contains: q } }, { codigo: { contains: q } }],
+      OR: [
+        { AND: condicionesPorPalabra("nombreSabor", q) },
+        { AND: condicionesPorPalabra("codigo", q) },
+      ],
     };
   }
   if (vencePronto) {

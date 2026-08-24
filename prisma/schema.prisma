@@ -195,13 +195,17 @@ model Rack {
 model UbicacionStock {
   id             String   @id @default(cuid())
   nombreProducto String
-  rackId         String
-  rack           Rack     @relation(fields: [rackId], references: [id], onDelete: Restrict)
-  fila           String
-  columna        Int
+  // Una fila tiene O rack+fila+columna O areaLibre, nunca ambos (regla de
+  // negocio validada en la acción, no a nivel de esquema).
+  rackId         String?
+  rack           Rack?    @relation(fields: [rackId], references: [id], onDelete: Restrict)
+  fila           String?
+  columna        Int?
+  areaLibre      String?
   ordenIngreso   Int
   createdAt      DateTime @default(now())
 
   // Una celda física (rack + fila + columna) solo puede tener un producto a la vez.
+  // (rackId/fila/columna nulos —filas de área libre— no chocan entre sí.)
   @@unique([rackId, fila, columna])
 }

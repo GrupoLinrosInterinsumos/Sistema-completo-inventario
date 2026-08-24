@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "UbicacionStock" ADD COLUMN     "areaLibre" TEXT,
+ALTER COLUMN "rackId" DROP NOT NULL,
+ALTER COLUMN "fila" DROP NOT NULL,
+ALTER COLUMN "columna" DROP NOT NULL;

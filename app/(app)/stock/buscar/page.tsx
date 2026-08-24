@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { labelUbicacion } from "@/lib/ubicacion";
+import { condicionesPorPalabra } from "@/lib/search";
 import { estadoVencimiento } from "@/lib/vencimientos";
 import { IconSearch } from "@/app/components/ui/icons";
 import { Button } from "@/app/components/ui/button";
@@ -17,13 +18,39 @@ export default async function BuscarStockPage({
         where: {
           cantidadDisponible: { gt: 0 },
           producto: {
-            OR: [{ nombreSabor: { contains: q } }, { codigo: { contains: q } }],
+            OR: [
+              { AND: condicionesPorPalabra("nombreSabor", q) },
+              { AND: condicionesPorPalabra("codigo", q) },
+            ],
           },
         },
         include: { producto: true, almacen: true },
         orderBy: [{ fVencimiento: "asc" }],
       })
     : [];
+
+  // Todas las cajas vivas en las mismas ubicaciones que los resultados, para
+  // poder mostrar "qué más hay en esta paleta/refrigeradora" sin N+1 queries.
+  const clavesUbicacion = [...new Set(filas.map((f) => `${f.almacenId}|${f.ubicacionNumero}`))];
+  const hermanosPorClave = new Map<string, { nCaja: string; nombreSabor: string }[]>();
+  if (clavesUbicacion.length > 0) {
+    const todasLasCajas = await prisma.inventarioActual.findMany({
+      where: {
+        cantidadDisponible: { gt: 0 },
+        OR: clavesUbicacion.map((clave) => {
+          const [almacenId, ubicacionNumero] = clave.split("|");
+          return { almacenId, ubicacionNumero };
+        }),
+      },
+      select: { almacenId: true, ubicacionNumero: true, nCaja: true, producto: { select: { nombreSabor: true } } },
+    });
+    for (const c of todasLasCajas) {
+      const clave = `${c.almacenId}|${c.ubicacionNumero}`;
+      const lista = hermanosPorClave.get(clave) ?? [];
+      lista.push({ nCaja: c.nCaja, nombreSabor: c.producto.nombreSabor });
+      hermanosPorClave.set(clave, lista);
+    }
+  }
 
   const porAlmacen = new Map<string, typeof filas>();
   for (const fila of filas) {
@@ -85,6 +112,7 @@ export default async function BuscarStockPage({
                 cantidadDisponible={fila.cantidadDisponible}
                 unidad="kg"
                 estado={estadoVencimiento(fila.fProduccion, fila.fVencimiento)}
+                hermanos={hermanosPorClave.get(`${fila.almacenId}|${fila.ubicacionNumero}`) ?? []}
               />
             ))}
           </ResultsGrid>

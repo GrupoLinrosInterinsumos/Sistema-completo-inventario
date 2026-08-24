@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { condicionesPorPalabra } from "@/lib/search";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
@@ -15,7 +16,7 @@ export default async function UbicacionPage({
 
   const resultados = q
     ? await prisma.ubicacionStock.findMany({
-        where: { nombreProducto: { contains: q } },
+        where: { AND: condicionesPorPalabra("nombreProducto", q) },
         include: { rack: true },
         orderBy: { ordenIngreso: "asc" },
       })
@@ -70,8 +71,7 @@ export default async function UbicacionPage({
                     <Badge variant="info">N° {r.ordenIngreso}</Badge>
                   </div>
                   <p className="mt-2 text-sm text-on-surface-variant">
-                    Rack {r.rack.numero} — {r.fila}
-                    {r.columna}
+                    {r.rack ? `Rack ${r.rack.numero} — ${r.fila}${r.columna}` : r.areaLibre}
                   </p>
                 </Card>
               </Link>

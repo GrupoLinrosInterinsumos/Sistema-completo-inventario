@@ -9,12 +9,15 @@ import { ProgressBar } from "@/app/components/ui/progress-bar";
 import { IconAlertTriangle, IconCheck, IconClock } from "@/app/components/ui/icons";
 import type { EstadoVencimiento } from "@/lib/vencimientos";
 import { retirarStockAction } from "./actions";
+import { UbicacionChips } from "./ubicacion-chips";
 
 const CHIP_ICON: Record<EstadoVencimiento["chipVariant"], React.ReactNode> = {
   danger: <IconAlertTriangle size={12} />,
   warning: <IconClock size={12} />,
   info: <IconCheck size={12} />,
 };
+
+type Hermano = { nCaja: string; nombreSabor: string };
 
 type Props = {
   inventarioActualId: string;
@@ -26,6 +29,7 @@ type Props = {
   cantidadDisponible: number;
   unidad: string;
   estado: EstadoVencimiento;
+  hermanos?: Hermano[];
 };
 
 export function RetirarStock({
@@ -38,6 +42,7 @@ export function RetirarStock({
   cantidadDisponible,
   unidad,
   estado,
+  hermanos = [],
 }: Props) {
   const router = useRouter();
   const idPrefix = useId();
@@ -105,6 +110,8 @@ export function RetirarStock({
             <ProgressBar value={estado.pctVidaUtil} max={100} tone={estado.tone} />
           </div>
         </div>
+
+        <UbicacionChips label={`${ubicacionLabel} ${ubicacionNumero}`} nCajaActual={nCaja} hermanos={hermanos} />
       </div>
 
       <div className="border-t border-outline-variant p-4">

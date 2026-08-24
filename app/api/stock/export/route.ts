@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { formatFechaUTC } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { condicionesPorPalabraEnCampos } from "@/lib/search";
 import { labelUbicacion } from "@/lib/ubicacion";
 import { rangoProximosAVencer } from "@/lib/vencimientos";
 import { xlsxResponse } from "@/lib/xlsx";
@@ -15,9 +16,7 @@ export async function GET(request: NextRequest) {
   const where: Prisma.InventarioActualWhereInput = {};
   if (almacenId) where.almacenId = almacenId;
   if (q) {
-    where.producto = {
-      OR: [{ nombreSabor: { contains: q } }, { codigo: { contains: q } }],
-    };
+    where.producto = { AND: condicionesPorPalabraEnCampos(["nombreSabor", "codigo"], q) };
   }
   if (vencePronto) {
     where.fVencimiento = rangoProximosAVencer();

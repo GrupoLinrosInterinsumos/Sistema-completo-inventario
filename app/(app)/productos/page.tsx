@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { condicionesPorPalabraEnCampos } from "@/lib/search";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { LinkButton } from "@/app/components/ui/link-button";
@@ -20,14 +21,7 @@ export default async function ProductosPage({ searchParams }: PageProps<"/produc
 
   const where = {
     ...(almacenFiltro ? { almacen: { nombre: almacenFiltro as "CRAMER" | "SACCO" } } : {}),
-    ...(q
-      ? {
-          OR: [
-            { nombreSabor: { contains: q } },
-            { codigo: { contains: q } },
-          ],
-        }
-      : {}),
+    ...(q ? { AND: condicionesPorPalabraEnCampos(["nombreSabor", "codigo"], q) } : {}),
   };
 
   const [productos, total, almacenes] = await Promise.all([

@@ -21,12 +21,29 @@ export async function crearUbicacionStockAction(
   await requireSession();
 
   const nombreProducto = String(formData.get("nombreProducto") ?? "").trim();
+  const modo = String(formData.get("modo") ?? "rack");
+  const ordenIngreso = Number(formData.get("ordenIngreso"));
+
+  if (!nombreProducto || !ordenIngreso) {
+    return { error: "Completa todos los campos." };
+  }
+
+  if (modo === "area") {
+    const areaLibre = String(formData.get("areaLibre") ?? "").trim();
+    if (!areaLibre) return { error: "Escribe el nombre de la zona (ej. Piso, Gabinete)." };
+
+    const creado = await prisma.ubicacionStock.create({
+      data: { nombreProducto, areaLibre, ordenIngreso },
+    });
+    revalidatePath("/ubicacion");
+    redirect(`/ubicacion/${creado.id}`);
+  }
+
   const rackId = String(formData.get("rackId") ?? "").trim();
   const fila = String(formData.get("fila") ?? "").trim().toUpperCase();
   const columna = Number(formData.get("columna"));
-  const ordenIngreso = Number(formData.get("ordenIngreso"));
 
-  if (!nombreProducto || !rackId || !fila || !columna || !ordenIngreso) {
+  if (!rackId || !fila || !columna) {
     return { error: "Completa todos los campos." };
   }
 

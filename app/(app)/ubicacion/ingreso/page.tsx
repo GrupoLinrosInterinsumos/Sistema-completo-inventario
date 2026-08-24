@@ -2,12 +2,15 @@ import { prisma } from "@/lib/prisma";
 import { UbicacionIngresoForm } from "../ingreso-form";
 
 export default async function UbicacionIngresoPage() {
-  const [racks, ocupadas] = await Promise.all([
+  const [racks, ocupadasRaw] = await Promise.all([
     prisma.rack.findMany({ orderBy: { numero: "asc" } }),
     prisma.ubicacionStock.findMany({
+      where: { rackId: { not: null } },
       select: { rackId: true, fila: true, columna: true, nombreProducto: true },
     }),
   ]);
+
+  const ocupadas = ocupadasRaw as { rackId: string; fila: string; columna: number; nombreProducto: string }[];
 
   return (
     <div className="max-w-2xl">
