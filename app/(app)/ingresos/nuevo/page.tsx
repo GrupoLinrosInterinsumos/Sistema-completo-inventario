@@ -1,11 +1,18 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { sistemaAlmacenActual } from "@/lib/sistema-almacen";
 import { IngresoForm } from "../ingreso-form";
 
 export default async function NuevoIngresoPage() {
-  const [almacenes, productos] = await Promise.all([
+  const session = await auth();
+  const sistema = session?.user.rol === "ALMACEN" ? await sistemaAlmacenActual() : null;
+
+  const [almacenesTodos, productos] = await Promise.all([
     prisma.almacen.findMany({ orderBy: { nombre: "asc" } }),
     prisma.producto.findMany({ where: { activo: true }, orderBy: { nombreSabor: "asc" } }),
   ]);
+
+  const almacenes = sistema ? almacenesTodos.filter((a) => a.nombre === sistema) : almacenesTodos;
 
   return (
     <div className="max-w-5xl">

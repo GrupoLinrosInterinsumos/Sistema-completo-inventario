@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { auth } from "@/auth";
 import { formatFechaLima } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { sistemaAlmacenActual } from "@/lib/sistema-almacen";
 import { Badge } from "@/app/components/ui/badge";
 import { LinkButton } from "@/app/components/ui/link-button";
 import { IconPlus } from "@/app/components/ui/icons";
+import type { Prisma } from "@/app/generated/prisma/client";
 
 const ESTADO_LABEL: Record<string, string> = {
   BORRADOR: "Borrador",
@@ -18,7 +21,13 @@ const ESTADO_VARIANT: Record<string, "warning" | "info" | "success"> = {
 };
 
 export default async function IngresosPage() {
+  const session = await auth();
+  const sistema = session?.user.rol === "ALMACEN" ? await sistemaAlmacenActual() : null;
+
+  const where: Prisma.IngresoWhereInput = sistema ? { almacen: { nombre: sistema } } : {};
+
   const ingresos = await prisma.ingreso.findMany({
+    where,
     orderBy: { fecha: "desc" },
     include: {
       almacen: true,

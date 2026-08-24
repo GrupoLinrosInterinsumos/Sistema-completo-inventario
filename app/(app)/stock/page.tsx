@@ -1,6 +1,8 @@
+import { auth } from "@/auth";
 import { formatFechaUTC } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { condicionesPorPalabra } from "@/lib/search";
+import { sistemaAlmacenActual } from "@/lib/sistema-almacen";
 import { labelUbicacion } from "@/lib/ubicacion";
 import { rangoProximosAVencer } from "@/lib/vencimientos";
 import { Badge } from "@/app/components/ui/badge";
@@ -12,12 +14,15 @@ export default async function InventarioActualPage({
   searchParams,
 }: PageProps<"/stock">) {
   const params = await searchParams;
-  const almacenId = typeof params.almacenId === "string" ? params.almacenId : "";
+  const session = await auth();
+  const sistema = session?.user.rol === "ALMACEN" ? await sistemaAlmacenActual() : null;
+  const almacenId = sistema ? "" : typeof params.almacenId === "string" ? params.almacenId : "";
   const q = typeof params.q === "string" ? params.q : "";
   const vencePronto = params.vencePronto === "1";
 
   const where: Prisma.InventarioActualWhereInput = {};
-  if (almacenId) where.almacenId = almacenId;
+  if (sistema) where.almacen = { nombre: sistema };
+  else if (almacenId) where.almacenId = almacenId;
   if (q) {
     where.producto = {
       OR: [
@@ -30,7 +35,7 @@ export default async function InventarioActualPage({
     where.fVencimiento = rangoProximosAVencer();
   }
 
-  const [filas, almacenes] = await Promise.all([
+  const [filas, almacenesTodos] = await Promise.all([
     prisma.inventarioActual.findMany({
       where,
       include: { producto: true, almacen: true },
@@ -38,6 +43,7 @@ export default async function InventarioActualPage({
     }),
     prisma.almacen.findMany({ orderBy: { nombre: "asc" } }),
   ]);
+  const almacenes = sistema ? almacenesTodos.filter((a) => a.nombre === sistema) : almacenesTodos;
 
   const exportQuery = new URLSearchParams();
   if (almacenId) exportQuery.set("almacenId", almacenId);
@@ -67,19 +73,23 @@ export default async function InventarioActualPage({
           <label htmlFor="stock-almacen" className="block text-label-md uppercase tracking-wide text-on-surface-variant">
             Almacén
           </label>
-          <select
-            id="stock-almacen"
-            name="almacenId"
-            defaultValue={almacenId}
-            className="mt-1 w-full rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:w-auto"
-          >
-            <option value="">Todos</option>
-            {almacenes.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nombre}
-              </option>
-            ))}
-          </select>
+          {sistema ? (
+            <p className="mt-1 py-1.5 text-sm font-medium text-on-surface">{sistema}</p>
+          ) : (
+            <select
+              id="stock-almacen"
+              name="almacenId"
+              defaultValue={almacenId}
+              className="mt-1 w-full rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:w-auto"
+            >
+              <option value="">Todos</option>
+              {almacenes.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nombre}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div className="w-full sm:w-auto">

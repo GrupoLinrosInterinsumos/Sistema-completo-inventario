@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { NAV_ITEMS } from "@/lib/nav";
+import { sistemaAlmacenActual } from "@/lib/sistema-almacen";
 import { Logo } from "@/app/logo";
 import { Avatar } from "@/app/components/ui/avatar";
 import { logoutAction } from "./actions";
@@ -20,10 +21,11 @@ export default async function AppLayout({
   const items = NAV_ITEMS.filter((item) => item.roles.includes(rol));
   const rolLabel = rol === "SUPERVISOR" ? "Supervisor / Admin" : "Almacén";
   const userName = session.user.name ?? "";
+  const sistema = rol === "ALMACEN" ? await sistemaAlmacenActual() : null;
 
   return (
     <div className="min-h-screen lg:flex">
-      <MobileNav items={items} userName={userName} rolLabel={rolLabel} logoutAction={logoutAction} />
+      <MobileNav items={items} userName={userName} rolLabel={rolLabel} sistema={sistema} logoutAction={logoutAction} />
 
       <aside className="hidden border-r border-outline-variant bg-surface-container-lowest lg:flex lg:w-64 lg:flex-col">
         <div className="border-b border-outline-variant px-6 py-5">
@@ -31,6 +33,14 @@ export default async function AppLayout({
             <Logo className="h-10 w-auto" />
           </Link>
           <p className="mt-1.5 text-xs text-on-surface-variant">Gestión de inventario</p>
+          {sistema ? (
+            <Link
+              href="/inicio"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-chip bg-primary-fixed px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary-fixed-dim"
+            >
+              Almacén {sistema}
+            </Link>
+          ) : null}
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">

@@ -13,10 +13,11 @@ type Props = {
   items: NavItem[];
   userName: string;
   rolLabel: string;
+  sistema?: string | null;
   logoutAction: () => void;
 };
 
-export function MobileNav({ items, userName, rolLabel, logoutAction }: Props) {
+export function MobileNav({ items, userName, rolLabel, sistema, logoutAction }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -25,9 +26,16 @@ export function MobileNav({ items, userName, rolLabel, logoutAction }: Props) {
         className="relative z-40 flex items-center justify-between border-b border-outline-variant bg-surface-container-lowest px-4 pb-2.5"
         style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top))" }}
       >
-        <Link href="/inicio" aria-label="Volver a Sistemas Almacén">
-          <Logo className="h-8 w-auto" />
-        </Link>
+        <div className="flex items-center gap-2.5">
+          <Link href="/inicio" aria-label="Volver a Sistemas Almacén">
+            <Logo className="h-8 w-auto" />
+          </Link>
+          {sistema ? (
+            <Link href="/inicio" className="rounded-chip bg-primary-fixed px-2 py-1 text-xs font-semibold text-primary">
+              {sistema}
+            </Link>
+          ) : null}
+        </div>
         <button
           type="button"
           onClick={() => setOpen(true)}

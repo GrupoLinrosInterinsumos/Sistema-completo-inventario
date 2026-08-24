@@ -1,29 +1,37 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { labelUbicacion } from "@/lib/ubicacion";
 import { condicionesPorPalabra } from "@/lib/search";
+import { sistemaAlmacenActual } from "@/lib/sistema-almacen";
 import { estadoVencimiento } from "@/lib/vencimientos";
 import { IconSearch } from "@/app/components/ui/icons";
 import { Button } from "@/app/components/ui/button";
 import { RetirarStock } from "../retirar-stock";
 import { ResultsGrid } from "../results-grid";
+import type { Prisma } from "@/app/generated/prisma/client";
 
 export default async function BuscarStockPage({
   searchParams,
 }: PageProps<"/stock/buscar">) {
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim() : "";
+  const session = await auth();
+  const sistema = session?.user.rol === "ALMACEN" ? await sistemaAlmacenActual() : null;
+
+  const where: Prisma.InventarioActualWhereInput = {
+    cantidadDisponible: { gt: 0 },
+    producto: {
+      OR: [
+        { AND: condicionesPorPalabra("nombreSabor", q) },
+        { AND: condicionesPorPalabra("codigo", q) },
+      ],
+    },
+  };
+  if (sistema) where.almacen = { nombre: sistema };
 
   const filas = q
     ? await prisma.inventarioActual.findMany({
-        where: {
-          cantidadDisponible: { gt: 0 },
-          producto: {
-            OR: [
-              { AND: condicionesPorPalabra("nombreSabor", q) },
-              { AND: condicionesPorPalabra("codigo", q) },
-            ],
-          },
-        },
+        where,
         include: { producto: true, almacen: true },
         orderBy: [{ fVencimiento: "asc" }],
       })

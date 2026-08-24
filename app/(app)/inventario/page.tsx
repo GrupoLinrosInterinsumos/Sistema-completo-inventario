@@ -1,11 +1,22 @@
 import Link from "next/link";
+import { auth } from "@/auth";
 import { formatFechaLima } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { sistemaAlmacenActual } from "@/lib/sistema-almacen";
 import { Badge } from "@/app/components/ui/badge";
+import type { Prisma } from "@/app/generated/prisma/client";
 
 export default async function InventarioPendientesPage() {
+  const session = await auth();
+  const sistema = session?.user.rol === "ALMACEN" ? await sistemaAlmacenActual() : null;
+
+  const where: Prisma.IngresoWhereInput = {
+    estado: { in: ["CONFIRMADO", "DESGLOSADO"] },
+    ...(sistema ? { almacen: { nombre: sistema } } : {}),
+  };
+
   const ingresos = await prisma.ingreso.findMany({
-    where: { estado: { in: ["CONFIRMADO", "DESGLOSADO"] } },
+    where,
     include: { almacen: true, responsable: true, detalles: true },
     orderBy: { fecha: "asc" },
   });

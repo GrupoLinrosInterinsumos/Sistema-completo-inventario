@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
+import { auth } from "@/auth";
 import { formatFechaUTC } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { condicionesPorPalabraEnCampos } from "@/lib/search";
+import { sistemaAlmacenActual } from "@/lib/sistema-almacen";
 import { labelUbicacion } from "@/lib/ubicacion";
 import { rangoProximosAVencer } from "@/lib/vencimientos";
 import { xlsxResponse } from "@/lib/xlsx";
@@ -9,12 +11,15 @@ import type { Prisma } from "@/app/generated/prisma/client";
 
 export async function GET(request: NextRequest) {
   const params = Object.fromEntries(request.nextUrl.searchParams);
-  const almacenId = typeof params.almacenId === "string" ? params.almacenId : "";
+  const session = await auth();
+  const sistemaBloqueado = session?.user.rol === "ALMACEN" ? await sistemaAlmacenActual() : null;
+  const almacenId = sistemaBloqueado ? "" : typeof params.almacenId === "string" ? params.almacenId : "";
   const q = typeof params.q === "string" ? params.q : "";
   const vencePronto = params.vencePronto === "1";
 
   const where: Prisma.InventarioActualWhereInput = {};
-  if (almacenId) where.almacenId = almacenId;
+  if (sistemaBloqueado) where.almacen = { nombre: sistemaBloqueado };
+  else if (almacenId) where.almacenId = almacenId;
   if (q) {
     where.producto = { AND: condicionesPorPalabraEnCampos(["nombreSabor", "codigo"], q) };
   }

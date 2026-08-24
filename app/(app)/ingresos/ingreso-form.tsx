@@ -137,7 +137,7 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
               <label htmlFor="ingreso-almacen" className="block text-label-md uppercase tracking-wide text-on-surface-variant">
                 Almacén
               </label>
-              {mode === "crear" ? (
+              {mode === "crear" && almacenes.length > 1 ? (
                 <select
                   id="ingreso-almacen"
                   value={almacenId}
