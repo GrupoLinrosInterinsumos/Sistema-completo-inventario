@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
+import { RackFrame } from "./rack-frame";
 
 type Ocupante = { fila: string; columna: number; nombreProducto: string };
 
@@ -40,58 +41,62 @@ export function RackPicker({
 
   return (
     <div>
-      <div className="overflow-x-auto rounded-card border border-outline-variant bg-surface-container-lowest p-4">
-        <div
-          className="grid w-max gap-0.5"
-          style={{ gridTemplateColumns: `2rem repeat(${columnas}, minmax(1.75rem, 1fr))` }}
-        >
-          <div />
-          {columnasArr.map((c) => (
-            <div
-              key={`col-${c}`}
-              className="flex items-center justify-center pb-1 text-[10px] font-medium text-on-surface-variant"
-            >
-              {c}
-            </div>
-          ))}
-
-          {filas.map((fila) => (
-            <Fragment key={fila}>
-              <div className="flex items-center justify-center pr-1 text-xs font-semibold text-on-surface-variant">
-                {fila}
+      <RackFrame>
+        <div className="overflow-x-auto rounded-card border border-outline-variant bg-surface-container-lowest p-4">
+          <div
+            className="grid w-max gap-0.5"
+            style={{ gridTemplateColumns: `2rem repeat(${columnas}, minmax(1.75rem, 1fr))` }}
+          >
+            <div />
+            {columnasArr.map((c) => (
+              <div
+                key={`col-${c}`}
+                className="flex items-center justify-center pb-1 text-[10px] font-medium text-on-surface-variant"
+              >
+                {c}
               </div>
-              {columnasArr.map((c) => {
-                const key = `${fila}${c}`;
-                const ocupantes = ocupadasMap.get(key);
-                const seleccionada = fila === filaSeleccionada && c === columnaSeleccionada;
-                return (
-                  <button
-                    type="button"
-                    key={key}
-                    onClick={() => onSeleccionar(fila, c)}
-                    title={
-                      ocupantes
-                        ? `Ocupada (${ocupantes.length}): ${ocupantes.join(", ")} — puedes agregar otro producto`
-                        : `${key} — libre`
-                    }
-                    aria-label={`${key}${ocupantes ? `, ocupada por ${ocupantes.length} producto(s)` : ", libre"}`}
-                    aria-pressed={seleccionada}
-                    className={`m-0.5 flex aspect-square min-h-[1.5rem] items-center justify-center rounded text-[9px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                      seleccionada
-                        ? "bg-primary text-on-primary ring-2 ring-primary-container ring-offset-1"
-                        : ocupantes
-                          ? "bg-error-container/60 text-on-error-container hover:bg-error-container"
-                          : "bg-surface-container text-on-surface-variant hover:bg-primary-fixed"
-                    }`}
-                  >
-                    {seleccionada ? key : ocupantes && ocupantes.length > 1 ? ocupantes.length : ""}
-                  </button>
-                );
-              })}
-            </Fragment>
-          ))}
+            ))}
+
+            {filas.map((fila) => (
+              <Fragment key={fila}>
+                <div className="flex items-center justify-center pr-1 text-xs font-semibold text-on-surface-variant">
+                  {fila}
+                </div>
+                {columnasArr.map((c) => {
+                  const key = `${fila}${c}`;
+                  const ocupantes = ocupadasMap.get(key);
+                  const seleccionada = fila === filaSeleccionada && c === columnaSeleccionada;
+                  const divisor = c % 2 === 0 && c !== columnas;
+                  return (
+                    <button
+                      type="button"
+                      key={key}
+                      onClick={() => onSeleccionar(fila, c)}
+                      title={
+                        ocupantes
+                          ? `Ocupada (${ocupantes.length}): ${ocupantes.join(", ")} — puedes agregar otro producto`
+                          : `${key} — libre`
+                      }
+                      aria-label={`${key}${ocupantes ? `, ocupada por ${ocupantes.length} producto(s)` : ", libre"}`}
+                      aria-pressed={seleccionada}
+                      style={divisor ? { boxShadow: "inset -2px 0 0 0 var(--color-primary)" } : undefined}
+                      className={`m-0.5 flex aspect-square min-h-[1.5rem] items-center justify-center rounded text-[9px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                        seleccionada
+                          ? "bg-primary text-on-primary ring-2 ring-primary-container ring-offset-1"
+                          : ocupantes
+                            ? "bg-error-container/60 text-on-error-container hover:bg-error-container"
+                            : "bg-surface-container text-on-surface-variant hover:bg-primary-fixed"
+                      }`}
+                    >
+                      {seleccionada ? key : ocupantes && ocupantes.length > 1 ? ocupantes.length : ""}
+                    </button>
+                  );
+                })}
+              </Fragment>
+            ))}
+          </div>
         </div>
-      </div>
+      </RackFrame>
 
       <div className="mt-3 flex flex-wrap gap-4 text-xs text-on-surface-variant">
         <span className="flex items-center gap-1.5">

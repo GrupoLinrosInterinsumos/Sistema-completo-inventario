@@ -10,6 +10,7 @@ import { IconAlertTriangle, IconCheck, IconClock } from "@/app/components/ui/ico
 import type { EstadoVencimiento } from "@/lib/vencimientos";
 import { retirarStockAction } from "./actions";
 import { UbicacionChips } from "./ubicacion-chips";
+import { FridgeIcon } from "./fridge-icon";
 
 const CHIP_ICON: Record<EstadoVencimiento["chipVariant"], React.ReactNode> = {
   danger: <IconAlertTriangle size={12} />,
@@ -46,6 +47,7 @@ export function RetirarStock({
 }: Props) {
   const router = useRouter();
   const idPrefix = useId();
+  const esRefrigeradora = ubicacionLabel.toLowerCase().includes("refrigeradora");
   const [abierto, setAbierto] = useState(false);
   const [cantidad, setCantidad] = useState("");
   const [motivo, setMotivo] = useState("");
@@ -86,16 +88,19 @@ export function RetirarStock({
           </Badge>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-          <div>
-            <p className="text-xs text-on-surface-variant">Ubicación</p>
-            <p className="text-on-surface">
-              {ubicacionLabel} {ubicacionNumero} / Caja {nCaja}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-on-surface-variant">Lote</p>
-            <p className="text-on-surface">{lote}</p>
+        <div className="mt-3 flex items-start gap-3">
+          {esRefrigeradora ? <FridgeIcon size={36} /> : null}
+          <div className="grid flex-1 grid-cols-2 gap-2 text-sm">
+            <div>
+              <p className="text-xs text-on-surface-variant">Ubicación</p>
+              <p className="text-on-surface">
+                {ubicacionLabel} {ubicacionNumero} / Caja {nCaja}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-on-surface-variant">Lote</p>
+              <p className="text-on-surface">{lote}</p>
+            </div>
           </div>
         </div>
 
