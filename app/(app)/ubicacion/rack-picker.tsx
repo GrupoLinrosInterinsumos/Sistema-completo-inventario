@@ -30,7 +30,13 @@ export function RackPicker({
   for (let c = filaMaxCode; c >= filaMinCode; c--) filas.push(String.fromCharCode(c));
 
   const columnasArr = Array.from({ length: columnas }, (_, i) => i + 1);
-  const ocupadasMap = new Map(ocupadas.map((o) => [`${o.fila}${o.columna}`, o.nombreProducto]));
+  const ocupadasMap = new Map<string, string[]>();
+  for (const o of ocupadas) {
+    const key = `${o.fila}${o.columna}`;
+    const lista = ocupadasMap.get(key) ?? [];
+    lista.push(o.nombreProducto);
+    ocupadasMap.set(key, lista);
+  }
 
   return (
     <div>
@@ -56,26 +62,29 @@ export function RackPicker({
               </div>
               {columnasArr.map((c) => {
                 const key = `${fila}${c}`;
-                const ocupante = ocupadasMap.get(key);
+                const ocupantes = ocupadasMap.get(key);
                 const seleccionada = fila === filaSeleccionada && c === columnaSeleccionada;
                 return (
                   <button
                     type="button"
                     key={key}
-                    disabled={!!ocupante}
                     onClick={() => onSeleccionar(fila, c)}
-                    title={ocupante ? `Ocupada: ${ocupante}` : `${key} — libre`}
-                    aria-label={`${key}${ocupante ? `, ocupada por ${ocupante}` : ", libre"}`}
+                    title={
+                      ocupantes
+                        ? `Ocupada (${ocupantes.length}): ${ocupantes.join(", ")} — puedes agregar otro producto`
+                        : `${key} — libre`
+                    }
+                    aria-label={`${key}${ocupantes ? `, ocupada por ${ocupantes.length} producto(s)` : ", libre"}`}
                     aria-pressed={seleccionada}
                     className={`m-0.5 flex aspect-square min-h-[1.5rem] items-center justify-center rounded text-[9px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                       seleccionada
                         ? "bg-primary text-on-primary ring-2 ring-primary-container ring-offset-1"
-                        : ocupante
-                          ? "cursor-not-allowed bg-error-container/60 text-on-error-container"
+                        : ocupantes
+                          ? "bg-error-container/60 text-on-error-container hover:bg-error-container"
                           : "bg-surface-container text-on-surface-variant hover:bg-primary-fixed"
                     }`}
                   >
-                    {seleccionada ? key : ""}
+                    {seleccionada ? key : ocupantes && ocupantes.length > 1 ? ocupantes.length : ""}
                   </button>
                 );
               })}
@@ -89,7 +98,7 @@ export function RackPicker({
           <span className="h-3 w-3 rounded bg-surface-container" /> Libre
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded bg-error-container/60" /> Ocupada
+          <span className="h-3 w-3 rounded bg-error-container/60" /> Ocupada (puedes agregar otro producto igual)
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded bg-primary" /> Seleccionada

@@ -204,7 +204,7 @@ model UbicacionStock {
   ordenIngreso   Int
   createdAt      DateTime @default(now())
 
-  // Una celda física (rack + fila + columna) solo puede tener un producto a la vez.
-  // (rackId/fila/columna nulos —filas de área libre— no chocan entre sí.)
-  @@unique([rackId, fila, columna])
+  // Una celda física puede tener más de un producto a la vez — el selector
+  // solo indica si está ocupada, no exige unicidad.
+  @@index([rackId, fila, columna])
 }

@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { Prisma } from "@/app/generated/prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -57,19 +56,9 @@ export async function crearUbicacionStockAction(
     return { error: `La columna debe estar entre 1 y ${rack.columnas} para el Rack ${rack.numero}.` };
   }
 
-  let creado;
-  try {
-    creado = await prisma.ubicacionStock.create({
-      data: { nombreProducto, rackId, fila, columna, ordenIngreso },
-    });
-  } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      return {
-        error: `Esa ubicación (Rack ${rack.numero} ${fila}${columna}) ya tiene un producto. Márcala como vacía primero.`,
-      };
-    }
-    throw e;
-  }
+  const creado = await prisma.ubicacionStock.create({
+    data: { nombreProducto, rackId, fila, columna, ordenIngreso },
+  });
 
   revalidatePath("/ubicacion");
   redirect(`/ubicacion/${creado.id}`);
