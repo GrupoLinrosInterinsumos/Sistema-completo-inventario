@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
+import { ProductComboBox } from "@/app/components/ui/product-combobox";
 import { IconPackage, IconPlus, IconTrash } from "@/app/components/ui/icons";
 import {
   createIngresoAction,
@@ -177,22 +178,13 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <div className="sm:col-span-2 lg:col-span-2">
-              <label htmlFor="nueva-linea-producto" className="block text-label-md uppercase tracking-wide text-on-surface-variant">
-                Producto
-              </label>
-              <select
-                id="nueva-linea-producto"
+              <ProductComboBox
+                label="Producto"
+                placeholder="Escribe para buscar..."
+                productos={productosDelAlmacen}
                 value={nuevaLinea.productoId}
-                onChange={(e) => setNuevaLinea((p) => ({ ...p, productoId: e.target.value }))}
-                className="mt-1 w-full rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="">Seleccionar...</option>
-                {productosDelAlmacen.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombreSabor} ({p.presentacion})
-                  </option>
-                ))}
-              </select>
+                onChange={(productoId) => setNuevaLinea((p) => ({ ...p, productoId }))}
+              />
               {productosDelAlmacen.length === 0 ? (
                 <p className="mt-1 text-xs text-secondary">
                   No hay productos activos en el catálogo para este almacén.
