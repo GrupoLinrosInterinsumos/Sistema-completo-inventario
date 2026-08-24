@@ -22,5 +22,5 @@ export async function elegirSistemaAction(formData: FormData) {
     maxAge: 60 * 60 * 24 * 30,
   });
 
-  redirect(session.user.rol === "SUPERVISOR" ? "/dashboard" : "/ingresos");
+  redirect(session.user.rol === "SUPERVISOR" ? `/dashboard?almacen=${sistema}` : "/ingresos");
 }

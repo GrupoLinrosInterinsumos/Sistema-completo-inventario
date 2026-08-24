@@ -2,7 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { diaCortoLima, fechaLimaISO, formatFechaUTC } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { sistemaAlmacenActual } from "@/lib/sistema-almacen";
+import type { NombreAlmacenSistema } from "@/lib/sistema-almacen";
 import { labelUbicacion } from "@/lib/ubicacion";
 import { rangoProximosAVencer } from "@/lib/vencimientos";
 import { ActivityChart } from "@/app/components/ui/activity-chart";
@@ -11,9 +11,17 @@ import { ProgressBar } from "@/app/components/ui/progress-bar";
 import { LinkButton } from "@/app/components/ui/link-button";
 import { IconAlertTriangle, IconClipboardCheck, IconPackage } from "@/app/components/ui/icons";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: PageProps<"/dashboard">) {
   const session = await auth();
-  const sistema = await sistemaAlmacenActual();
+  const params = await searchParams;
+  // Solo se filtra por almacén cuando se llega desde el tile CRAMER/SACCO de
+  // Sistemas Almacén (?almacen=...) — el link "Dashboard" del menú siempre
+  // muestra todo, sin quedar "pegado" a la última elección.
+  const almacenParam = typeof params.almacen === "string" ? params.almacen : "";
+  const sistema: NombreAlmacenSistema | null =
+    almacenParam === "CRAMER" || almacenParam === "SACCO" ? almacenParam : null;
   const now = new Date();
   const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
   const hace7Dias = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
