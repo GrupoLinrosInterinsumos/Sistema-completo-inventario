@@ -1,7 +1,8 @@
 "use server";
 
 import { AuthError } from "next-auth";
-import { signIn } from "@/auth";
+import { redirect } from "next/navigation";
+import { auth, signIn } from "@/auth";
 
 export type LoginState = { error?: string } | undefined;
 
@@ -14,15 +15,21 @@ export async function loginAction(
   const callbackUrl = formData.get("callbackUrl");
 
   try {
-    await signIn("credentials", {
-      email,
-      password,
-      redirectTo: typeof callbackUrl === "string" && callbackUrl ? callbackUrl : "/inicio",
-    });
+    await signIn("credentials", { email, password, redirect: false });
   } catch (error) {
     if (error instanceof AuthError) {
       return { error: "Usuario o contraseña incorrectos." };
     }
     throw error;
   }
+
+  // El operador (rol ALMACEN) siempre entra por Sistemas Almacén para elegir
+  // CRAMER/SACCO — un callbackUrl viejo (ej. a /ingresos) no debe saltarse
+  // ese paso. El supervisor sí puede volver a donde estaba.
+  const session = await auth();
+  const destino =
+    session?.user.rol === "SUPERVISOR" && typeof callbackUrl === "string" && callbackUrl
+      ? callbackUrl
+      : "/inicio";
+  redirect(destino);
 }
