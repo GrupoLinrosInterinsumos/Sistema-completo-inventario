@@ -81,8 +81,10 @@ export async function guardarDesgloseAction(
         lote: detalle.lote,
         fProduccion: detalle.fProduccion,
         fVencimiento: detalle.fVencimiento,
-        ubicacionNumero: f.ubicacionNumero.trim(),
-        nCaja: f.nCaja.trim(),
+        // Mayúsculas siempre, para que "cc5" y "CC5" sean la misma ubicación
+        // (la comparación exacta en la base es sensible a mayúsculas).
+        ubicacionNumero: f.ubicacionNumero.trim().toUpperCase(),
+        nCaja: f.nCaja.trim().toUpperCase(),
         cantidadKg: f.cantidadKg,
       })),
     });
