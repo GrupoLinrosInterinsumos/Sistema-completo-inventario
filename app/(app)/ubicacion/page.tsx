@@ -68,6 +68,11 @@ export default async function UbicacionPage({
     })),
   ];
 
+  // Ubicación "NC" (no consta) es una posición sin registrar — se manda al
+  // final en vez de mezclarse con resultados que sí tienen dónde está.
+  const sinUbicacionClara = (u: string) => u.trim().toUpperCase() === "NC";
+  resultados.sort((a, b) => Number(sinUbicacionClara(a.ubicacion)) - Number(sinUbicacionClara(b.ubicacion)));
+
   return (
     <div className="max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
