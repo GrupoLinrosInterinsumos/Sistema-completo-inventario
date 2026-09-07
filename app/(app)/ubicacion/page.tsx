@@ -102,10 +102,10 @@ export default async function UbicacionPage({
               <Link key={`${r.origen}-${r.id}`} href={r.href}>
                 <Card className="p-4 transition-transform hover:scale-[1.01]">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-on-surface">{r.nombreProducto}</h3>
+                    <p className="text-xs text-on-surface-variant">{r.nombreProducto}</p>
                     <Badge variant={r.origen === "UBICACION" ? "info" : "neutral"}>{r.origen}</Badge>
                   </div>
-                  <p className="mt-2 text-sm text-on-surface-variant">{r.ubicacion}</p>
+                  <p className="mt-1 text-lg font-bold leading-snug text-primary">{r.ubicacion}</p>
                 </Card>
               </Link>
             ))}
