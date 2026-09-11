@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/app/generated/prisma/client";
 
 export type LineaInput = {
   productoId: string;
@@ -120,6 +121,43 @@ export async function updateIngresoAction(
   revalidatePath("/ingresos");
   revalidatePath(`/ingresos/${id}`);
   return { id };
+}
+
+export type NuevoProductoResult =
+  | { error: string }
+  | { producto: { id: string; nombreSabor: string; codigo: string; presentacion: string; almacenId: string } };
+
+// Crear un producto al vuelo desde "Nuevo ingreso" cuando todavía no existe
+// en el catálogo — cualquier usuario autenticado puede usarlo (a diferencia
+// del catálogo en /productos, que es solo para el supervisor).
+export async function crearProductoRapidoAction(
+  almacenId: string,
+  nombreSabor: string,
+  codigo: string,
+  presentacion: string
+): Promise<NuevoProductoResult> {
+  await requireSession();
+
+  const nombre = nombreSabor.trim();
+  const cod = codigo.trim();
+  const presen = presentacion.trim();
+
+  if (!almacenId || !nombre || !cod || !presen) {
+    return { error: "Completa nombre, código y presentación." };
+  }
+
+  try {
+    const producto = await prisma.producto.create({
+      data: { nombreSabor: nombre, codigo: cod, presentacion: presen, almacenId },
+    });
+    revalidatePath("/ingresos/nuevo");
+    return { producto };
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return { error: "Ya existe un producto con ese código." };
+    }
+    throw e;
+  }
 }
 
 export async function confirmarIngresoAction(id: string) {

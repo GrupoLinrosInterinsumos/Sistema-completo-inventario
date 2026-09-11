@@ -9,6 +9,7 @@ import { ProductComboBox } from "@/app/components/ui/product-combobox";
 import { IconPackage, IconPlus, IconTrash } from "@/app/components/ui/icons";
 import {
   createIngresoAction,
+  crearProductoRapidoAction,
   updateIngresoAction,
   type IngresoInput,
   type LineaInput,
@@ -52,16 +53,45 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
   const [nuevaLinea, setNuevaLinea] = useState(LINEA_VACIA);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [productosLocal, setProductosLocal] = useState<Producto[]>(productos);
+  const [nuevoProductoAbierto, setNuevoProductoAbierto] = useState(false);
+  const [nuevoProducto, setNuevoProducto] = useState({ nombreSabor: "", codigo: "", presentacion: "" });
+  const [errorNuevoProducto, setErrorNuevoProducto] = useState<string | null>(null);
+  const [creandoProducto, startCreandoProducto] = useTransition();
 
   const productosPorId = useMemo(
-    () => new Map(productos.map((p) => [p.id, p])),
-    [productos]
+    () => new Map(productosLocal.map((p) => [p.id, p])),
+    [productosLocal]
   );
 
   const productosDelAlmacen = useMemo(
-    () => productos.filter((p) => p.almacenId === almacenId),
-    [productos, almacenId]
+    () => productosLocal.filter((p) => p.almacenId === almacenId),
+    [productosLocal, almacenId]
   );
+
+  function crearProductoNuevo() {
+    if (!nuevoProducto.nombreSabor.trim() || !nuevoProducto.codigo.trim() || !nuevoProducto.presentacion.trim()) {
+      setErrorNuevoProducto("Completa nombre, código y presentación.");
+      return;
+    }
+    setErrorNuevoProducto(null);
+    startCreandoProducto(async () => {
+      const result = await crearProductoRapidoAction(
+        almacenId,
+        nuevoProducto.nombreSabor,
+        nuevoProducto.codigo,
+        nuevoProducto.presentacion
+      );
+      if ("error" in result) {
+        setErrorNuevoProducto(result.error);
+        return;
+      }
+      setProductosLocal((prev) => [...prev, result.producto]);
+      setNuevaLinea((p) => ({ ...p, productoId: result.producto.id }));
+      setNuevoProducto({ nombreSabor: "", codigo: "", presentacion: "" });
+      setNuevoProductoAbierto(false);
+    });
+  }
 
   function cambiarAlmacen(nuevoAlmacenId: string) {
     setAlmacenId(nuevoAlmacenId);
@@ -189,6 +219,48 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
                 <p className="mt-1 text-xs text-secondary">
                   No hay productos activos en el catálogo para este almacén.
                 </p>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={() => setNuevoProductoAbierto((v) => !v)}
+                className="mt-1.5 text-xs font-medium text-primary transition-colors hover:text-primary-container"
+              >
+                {nuevoProductoAbierto ? "Cancelar" : "+ El producto no está en la lista, agregarlo"}
+              </button>
+
+              {nuevoProductoAbierto ? (
+                <div className="mt-2 space-y-2 rounded-md border border-outline-variant bg-surface-container-low p-3">
+                  <input
+                    type="text"
+                    placeholder="Nombre del producto"
+                    value={nuevoProducto.nombreSabor}
+                    onChange={(e) => setNuevoProducto((p) => ({ ...p, nombreSabor: e.target.value }))}
+                    className="w-full rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Código"
+                      value={nuevoProducto.codigo}
+                      onChange={(e) => setNuevoProducto((p) => ({ ...p, codigo: e.target.value }))}
+                      className="w-1/2 rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Presentación"
+                      value={nuevoProducto.presentacion}
+                      onChange={(e) => setNuevoProducto((p) => ({ ...p, presentacion: e.target.value }))}
+                      className="w-1/2 rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  {errorNuevoProducto ? (
+                    <p className="text-xs text-secondary">{errorNuevoProducto}</p>
+                  ) : null}
+                  <Button type="button" size="sm" loading={creandoProducto} onClick={crearProductoNuevo}>
+                    Crear y usar
+                  </Button>
+                </div>
               ) : null}
             </div>
 
