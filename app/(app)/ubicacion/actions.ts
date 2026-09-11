@@ -44,29 +44,49 @@ export async function crearUbicacionStockAction(
   }
 
   const rackId = String(formData.get("rackId") ?? "").trim();
-  const fila = String(formData.get("fila") ?? "").trim().toUpperCase();
-  const columna = Number(formData.get("columna"));
+  const celdasRaw = String(formData.get("celdas") ?? "");
 
-  if (!rackId || !fila || !columna) {
+  if (!rackId || !celdasRaw) {
     return { error: "Completa todos los campos." };
+  }
+
+  let celdas: { fila: string; columna: number }[];
+  try {
+    celdas = JSON.parse(celdasRaw);
+  } catch {
+    return { error: "Selección de celdas inválida." };
+  }
+  if (!Array.isArray(celdas) || celdas.length === 0) {
+    return { error: "Haz clic en al menos una celda del rack." };
   }
 
   const rack = await prisma.rack.findUnique({ where: { id: rackId } });
   if (!rack) return { error: "Rack no válido." };
 
-  if (fila.length !== 1 || fila < rack.filaMin || fila > rack.filaMax) {
-    return { error: `La fila debe estar entre ${rack.filaMin} y ${rack.filaMax} para el Rack ${rack.numero}.` };
-  }
-  if (columna < 1 || columna > rack.columnas) {
-    return { error: `La columna debe estar entre 1 y ${rack.columnas} para el Rack ${rack.numero}.` };
+  for (const c of celdas) {
+    const fila = String(c.fila ?? "").toUpperCase();
+    const columna = Number(c.columna);
+    if (fila.length !== 1 || fila < rack.filaMin || fila > rack.filaMax) {
+      return { error: `La fila debe estar entre ${rack.filaMin} y ${rack.filaMax} para el Rack ${rack.numero}.` };
+    }
+    if (!columna || columna < 1 || columna > rack.columnas) {
+      return { error: `La columna debe estar entre 1 y ${rack.columnas} para el Rack ${rack.numero}.` };
+    }
   }
 
-  const creado = await prisma.ubicacionStock.create({
-    data: { nombreProducto, rackId, fila, columna, lote, fVencimiento },
+  await prisma.ubicacionStock.createMany({
+    data: celdas.map((c) => ({
+      nombreProducto,
+      rackId,
+      fila: String(c.fila).toUpperCase(),
+      columna: Number(c.columna),
+      lote,
+      fVencimiento,
+    })),
   });
 
   revalidatePath("/ubicacion");
-  redirect(`/ubicacion/${creado.id}`);
+  redirect(`/ubicacion?q=${encodeURIComponent(nombreProducto)}`);
 }
 
 export async function marcarVacioAction(id: string, volverHref: string) {

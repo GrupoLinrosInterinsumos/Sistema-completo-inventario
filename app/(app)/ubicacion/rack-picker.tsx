@@ -4,15 +4,15 @@ import { Fragment } from "react";
 import { RackFrame } from "./rack-frame";
 
 type Ocupante = { fila: string; columna: number; nombreProducto: string };
+type Celda = { fila: string; columna: number };
 
 type Props = {
   filaMin: string;
   filaMax: string;
   columnas: number;
   ocupadas: Ocupante[];
-  filaSeleccionada: string | null;
-  columnaSeleccionada: number | null;
-  onSeleccionar: (fila: string, columna: number) => void;
+  seleccionadas: Celda[];
+  onAlternar: (fila: string, columna: number) => void;
 };
 
 export function RackPicker({
@@ -20,9 +20,8 @@ export function RackPicker({
   filaMax,
   columnas,
   ocupadas,
-  filaSeleccionada,
-  columnaSeleccionada,
-  onSeleccionar,
+  seleccionadas,
+  onAlternar,
 }: Props) {
   const filaMinCode = filaMin.charCodeAt(0);
   const filaMaxCode = filaMax.charCodeAt(0);
@@ -38,6 +37,7 @@ export function RackPicker({
     lista.push(o.nombreProducto);
     ocupadasMap.set(key, lista);
   }
+  const seleccionadasSet = new Set(seleccionadas.map((s) => `${s.fila}${s.columna}`));
 
   return (
     <div>
@@ -65,13 +65,13 @@ export function RackPicker({
                 {columnasArr.map((c) => {
                   const key = `${fila}${c}`;
                   const ocupantes = ocupadasMap.get(key);
-                  const seleccionada = fila === filaSeleccionada && c === columnaSeleccionada;
+                  const seleccionada = seleccionadasSet.has(key);
                   const divisor = c % 2 === 0 && c !== columnas;
                   return (
                     <button
                       type="button"
                       key={key}
-                      onClick={() => onSeleccionar(fila, c)}
+                      onClick={() => onAlternar(fila, c)}
                       title={
                         ocupantes
                           ? `Ocupada (${ocupantes.length}): ${ocupantes.join(", ")} — puedes agregar otro producto`
@@ -106,7 +106,7 @@ export function RackPicker({
           <span className="h-3 w-3 rounded bg-error-container/60" /> Ocupada (puedes agregar otro producto igual)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded bg-primary" /> Seleccionada
+          <span className="h-3 w-3 rounded bg-primary" /> Seleccionada — puedes elegir varias
         </span>
       </div>
     </div>

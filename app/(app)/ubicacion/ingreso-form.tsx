@@ -27,8 +27,7 @@ export function UbicacionIngresoForm({
   const [nombreProducto, setNombreProducto] = useState("");
   const [modo, setModo] = useState<"rack" | "area">("rack");
   const [rackId, setRackId] = useState(racks[0]?.id ?? "");
-  const [fila, setFila] = useState<string | null>(null);
-  const [columna, setColumna] = useState<number | null>(null);
+  const [celdas, setCeldas] = useState<{ fila: string; columna: number }[]>([]);
   const [errorSeleccion, setErrorSeleccion] = useState<string | null>(null);
 
   const rackSeleccionado = useMemo(() => racks.find((r) => r.id === rackId), [racks, rackId]);
@@ -40,19 +39,27 @@ export function UbicacionIngresoForm({
 
   function cambiarRack(nuevoRackId: string) {
     setRackId(nuevoRackId);
-    setFila(null);
-    setColumna(null);
+    setCeldas([]);
+  }
+
+  function alternarCelda(f: string, c: number) {
+    setCeldas((prev) => {
+      const existe = prev.some((cel) => cel.fila === f && cel.columna === c);
+      if (existe) return prev.filter((cel) => !(cel.fila === f && cel.columna === c));
+      return [...prev, { fila: f, columna: c }];
+    });
+    setErrorSeleccion(null);
   }
 
   function enviar(formData: FormData) {
     formData.set("modo", modo);
     if (modo === "rack") {
-      if (!fila || !columna) {
-        setErrorSeleccion("Haz clic en una celda libre del rack para elegir la ubicación.");
+      if (celdas.length === 0) {
+        setErrorSeleccion("Haz clic en al menos una celda del rack para elegir la ubicación.");
         return;
       }
-      formData.set("fila", fila);
-      formData.set("columna", String(columna));
+      formData.set("rackId", rackId);
+      formData.set("celdas", JSON.stringify(celdas));
     }
     setErrorSeleccion(null);
     formAction(formData);
@@ -120,7 +127,7 @@ export function UbicacionIngresoForm({
 
           <div>
             <p className="block text-label-md uppercase tracking-wide text-on-surface-variant">
-              Ubicación — haz clic en una celda libre
+              Ubicación — haz clic en una o varias celdas
             </p>
             {rackSeleccionado ? (
               <div className="mt-1">
@@ -129,20 +136,18 @@ export function UbicacionIngresoForm({
                   filaMax={rackSeleccionado.filaMax}
                   columnas={rackSeleccionado.columnas}
                   ocupadas={ocupadasDelRack}
-                  filaSeleccionada={fila}
-                  columnaSeleccionada={columna}
-                  onSeleccionar={(f, c) => {
-                    setFila(f);
-                    setColumna(c);
-                    setErrorSeleccion(null);
-                  }}
+                  seleccionadas={celdas}
+                  onAlternar={alternarCelda}
                 />
               </div>
             ) : null}
             <p className="mt-2 text-sm text-on-surface">
-              {fila && columna ? (
+              {celdas.length > 0 ? (
                 <>
-                  Seleccionaste: <span className="font-semibold">Rack {rackSeleccionado?.numero} — {fila}{columna}</span>
+                  Seleccionaste ({celdas.length}):{" "}
+                  <span className="font-semibold">
+                    Rack {rackSeleccionado?.numero} — {celdas.map((c) => `${c.fila}${c.columna}`).join(", ")}
+                  </span>
                 </>
               ) : (
                 "Aún no has seleccionado ninguna celda."
