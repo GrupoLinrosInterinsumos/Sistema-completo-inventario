@@ -24,6 +24,7 @@ export const NAV_ITEMS: { href: string; label: string; roles: Rol[]; icon: NavIc
   { href: "/usuarios", label: "Usuarios", roles: ["SUPERVISOR"], icon: "usuarios", sistema: "almacen" },
   { href: "/ubicacion", label: "Buscar ubicación", roles: ["ALMACEN", "SUPERVISOR"], icon: "buscar", sistema: "ubicacion" },
   { href: "/ubicacion/ingreso", label: "Registrar ingreso", roles: ["ALMACEN", "SUPERVISOR"], icon: "ingreso", sistema: "ubicacion" },
+  { href: "/ubicacion/reporte", label: "Reporte de racks y zonas", roles: ["ALMACEN", "SUPERVISOR"], icon: "desglose", sistema: "ubicacion" },
 ];
 
 export function sistemaDePathname(pathname: string): Sistema {
