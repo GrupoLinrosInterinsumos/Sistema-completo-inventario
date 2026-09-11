@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { condicionesPorPalabra } from "@/lib/search";
-import { labelUbicacion } from "@/lib/ubicacion";
+import { fechaEfectivaUbicacion, labelUbicacion } from "@/lib/ubicacion";
 import { LinkButton } from "@/app/components/ui/link-button";
 import { LiveSearch } from "@/app/components/ui/live-search";
 import { IconClipboardCheck, IconPlus } from "@/app/components/ui/icons";
@@ -22,7 +22,6 @@ export default async function UbicacionPage({
         prisma.ubicacionStock.findMany({
           where: { AND: condicionesPorPalabra("nombreProducto", q) },
           include: { rack: true },
-          orderBy: { ordenIngreso: "asc" },
         }),
         prisma.inventarioActual.findMany({
           where: {
@@ -41,13 +40,14 @@ export default async function UbicacionPage({
     : [[], []];
 
   const qParam = q ? `?q=${encodeURIComponent(q)}` : "";
-  const resultados: ResultadoUnificado[] = [
+  const resultados: (ResultadoUnificado & { fechaOrden: number })[] = [
     ...ubicaciones.map((r) => ({
       id: r.id,
       nombreProducto: r.nombreProducto,
       ubicacion: r.rack ? `Rack ${r.rack.numero} — ${r.fila}${r.columna}` : (r.areaLibre ?? ""),
       href: `/ubicacion/${r.id}${qParam}`,
       origen: "UBICACION" as const,
+      fechaOrden: fechaEfectivaUbicacion(r),
     })),
     ...stockCramerSacco.map((f) => ({
       id: f.id,
@@ -55,13 +55,21 @@ export default async function UbicacionPage({
       ubicacion: `${labelUbicacion(f.almacen.tipoUbicacion)} ${f.ubicacionNumero} / Caja ${f.nCaja}`,
       href: `/ubicacion/stock/${f.id}${qParam}`,
       origen: f.almacen.nombre as "CRAMER" | "SACCO",
+      fechaOrden: f.fVencimiento.getTime(),
     })),
   ];
 
   // Ubicación "NC" (no consta) es una posición sin registrar — se manda al
-  // final en vez de mezclarse con resultados que sí tienen dónde está.
+  // final en vez de mezclarse con resultados que sí tienen dónde está. El
+  // resto se ordena por la fecha de vencimiento más próxima (o su
+  // equivalente para filas antiguas que solo tienen N° de ingreso).
   const sinUbicacionClara = (u: string) => u.trim().toUpperCase() === "NC";
-  resultados.sort((a, b) => Number(sinUbicacionClara(a.ubicacion)) - Number(sinUbicacionClara(b.ubicacion)));
+  resultados.sort((a, b) => {
+    const aSinUbic = Number(sinUbicacionClara(a.ubicacion));
+    const bSinUbic = Number(sinUbicacionClara(b.ubicacion));
+    if (aSinUbic !== bSinUbic) return aSinUbic - bSinUbic;
+    return a.fechaOrden - b.fechaOrden;
+  });
 
   const sugerencias = [...new Set(resultados.map((r) => r.nombreProducto))];
 

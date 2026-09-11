@@ -21,10 +21,15 @@ export async function crearUbicacionStockAction(
 
   const nombreProducto = String(formData.get("nombreProducto") ?? "").trim();
   const modo = String(formData.get("modo") ?? "rack");
-  const ordenIngreso = Number(formData.get("ordenIngreso"));
+  const lote = String(formData.get("lote") ?? "").trim();
+  const fVencimientoRaw = String(formData.get("fVencimiento") ?? "").trim();
 
-  if (!nombreProducto || !ordenIngreso) {
+  if (!nombreProducto || !lote || !fVencimientoRaw) {
     return { error: "Completa todos los campos." };
+  }
+  const fVencimiento = new Date(fVencimientoRaw);
+  if (Number.isNaN(fVencimiento.getTime())) {
+    return { error: "La fecha de vencimiento no es válida." };
   }
 
   if (modo === "area") {
@@ -32,7 +37,7 @@ export async function crearUbicacionStockAction(
     if (!areaLibre) return { error: "Escribe el nombre de la zona (ej. Piso, Gabinete)." };
 
     const creado = await prisma.ubicacionStock.create({
-      data: { nombreProducto, areaLibre, ordenIngreso },
+      data: { nombreProducto, areaLibre, lote, fVencimiento },
     });
     revalidatePath("/ubicacion");
     redirect(`/ubicacion/${creado.id}`);
@@ -57,7 +62,7 @@ export async function crearUbicacionStockAction(
   }
 
   const creado = await prisma.ubicacionStock.create({
-    data: { nombreProducto, rackId, fila, columna, ordenIngreso },
+    data: { nombreProducto, rackId, fila, columna, lote, fVencimiento },
   });
 
   revalidatePath("/ubicacion");

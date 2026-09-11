@@ -73,6 +73,48 @@ export default async function ReporteUbicacionPage() {
                   celdas={celdas}
                 />
               </div>
+
+              {celdas.length > 0 ? (
+                <div className="mt-3 overflow-hidden rounded-card border border-outline-variant bg-surface-container-lowest">
+                  <table className="min-w-full divide-y divide-outline-variant">
+                    <thead className="bg-surface-container">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-on-surface-variant">
+                          Celda
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-on-surface-variant">
+                          Productos
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant">
+                      {[...celdas]
+                        .sort((a, b) => a.fila.localeCompare(b.fila) || a.columna - b.columna)
+                        .map((celda) => (
+                          <tr key={`${celda.fila}${celda.columna}`} className="align-top transition-colors hover:bg-surface-container">
+                            <td className="whitespace-nowrap px-4 py-2 text-sm font-semibold text-on-surface">
+                              {celda.fila}
+                              {celda.columna}
+                            </td>
+                            <td className="px-4 py-2 text-sm text-on-surface-variant">
+                              <div className="flex flex-wrap gap-1.5">
+                                {celda.items.map((it) => (
+                                  <Link
+                                    key={it.id}
+                                    href={`/ubicacion/${it.id}`}
+                                    className="rounded-chip bg-surface-container px-2 py-1 text-xs text-on-surface transition-colors hover:bg-primary-fixed"
+                                  >
+                                    {it.nombreProducto}
+                                  </Link>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
             </div>
           );
         })}

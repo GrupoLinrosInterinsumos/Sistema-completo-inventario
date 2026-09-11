@@ -201,7 +201,12 @@ model UbicacionStock {
   fila           String?
   columna        Int?
   areaLibre      String?
-  ordenIngreso   Int
+  // Filas antiguas (del conteo inicial) solo tienen ordenIngreso — nunca se
+  // les cargó lote/vencimiento y se dejan tal cual. Las filas nuevas ya no
+  // piden N° de ingreso: usan lote + fVencimiento.
+  ordenIngreso   Int?
+  lote           String?
+  fVencimiento   DateTime?
   createdAt      DateTime @default(now())
 
   // Una celda física puede tener más de un producto a la vez — el selector

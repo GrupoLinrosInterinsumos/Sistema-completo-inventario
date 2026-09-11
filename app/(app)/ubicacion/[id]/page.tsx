@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { formatFechaUTC } from "@/lib/format";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { IconPackage } from "@/app/components/ui/icons";
@@ -33,7 +34,11 @@ export default async function UbicacionDetallePage({
 
       <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-headline-md text-on-surface">{item.nombreProducto}</h1>
-        <Badge variant="info">N° de ingreso {item.ordenIngreso}</Badge>
+        <Badge variant="info">
+          {item.lote && item.fVencimiento
+            ? `Lote ${item.lote} · Vence ${formatFechaUTC(item.fVencimiento)}`
+            : `N° de ingreso ${item.ordenIngreso}`}
+        </Badge>
       </div>
 
       <p className="mt-1 text-body-sm text-on-surface-variant">

@@ -5,16 +5,26 @@ import { useActionState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { crearUbicacionStockAction, type UbicacionFormState } from "./actions";
 import { RackPicker } from "./rack-picker";
+import { NombreProductoInput } from "./nombre-producto-input";
 
 type Rack = { id: string; numero: number; filaMin: string; filaMax: string; columnas: number };
 type Ocupante = { rackId: string; fila: string; columna: number; nombreProducto: string };
 
-export function UbicacionIngresoForm({ racks, ocupadas }: { racks: Rack[]; ocupadas: Ocupante[] }) {
+export function UbicacionIngresoForm({
+  racks,
+  ocupadas,
+  nombresSugeridos,
+}: {
+  racks: Rack[];
+  ocupadas: Ocupante[];
+  nombresSugeridos: string[];
+}) {
   const idPrefix = useId();
   const [state, formAction, pending] = useActionState<UbicacionFormState, FormData>(
     crearUbicacionStockAction,
     undefined
   );
+  const [nombreProducto, setNombreProducto] = useState("");
   const [modo, setModo] = useState<"rack" | "area">("rack");
   const [rackId, setRackId] = useState(racks[0]?.id ?? "");
   const [fila, setFila] = useState<string | null>(null);
@@ -54,12 +64,11 @@ export function UbicacionIngresoForm({ racks, ocupadas }: { racks: Rack[]; ocupa
         <label htmlFor={`${idPrefix}-nombre`} className="block text-label-md uppercase tracking-wide text-on-surface-variant">
           Nombre del producto
         </label>
-        <input
+        <NombreProductoInput
           id={`${idPrefix}-nombre`}
-          name="nombreProducto"
-          type="text"
-          required
-          className="mt-1 w-full rounded-md border border-outline-variant px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          nombresSugeridos={nombresSugeridos}
+          valor={nombreProducto}
+          onChange={setNombreProducto}
         />
       </div>
 
@@ -157,22 +166,35 @@ export function UbicacionIngresoForm({ racks, ocupadas }: { racks: Rack[]; ocupa
         </div>
       )}
 
-      <div>
-        <label htmlFor={`${idPrefix}-orden`} className="block text-label-md uppercase tracking-wide text-on-surface-variant">
-          N° de ingreso
-        </label>
-        <input
-          id={`${idPrefix}-orden`}
-          name="ordenIngreso"
-          type="number"
-          min={1}
-          required
-          className="mt-1 w-full max-w-xs rounded-md border border-outline-variant px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-        />
-        <p className="mt-1 text-xs text-on-surface-variant">
-          Mientras más bajo el número, antes aparece en el buscador (el que llegó primero).
-        </p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor={`${idPrefix}-lote`} className="block text-label-md uppercase tracking-wide text-on-surface-variant">
+            Lote
+          </label>
+          <input
+            id={`${idPrefix}-lote`}
+            name="lote"
+            type="text"
+            required
+            className="mt-1 w-full rounded-md border border-outline-variant px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
+        <div>
+          <label htmlFor={`${idPrefix}-vencimiento`} className="block text-label-md uppercase tracking-wide text-on-surface-variant">
+            Fecha de vencimiento
+          </label>
+          <input
+            id={`${idPrefix}-vencimiento`}
+            name="fVencimiento"
+            type="date"
+            required
+            className="mt-1 w-full rounded-md border border-outline-variant px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
       </div>
+      <p className="text-xs text-on-surface-variant">
+        Se ordena en el buscador por la fecha de vencimiento más próxima.
+      </p>
 
       {errorSeleccion ? (
         <p className="rounded-md bg-error-container px-3 py-2 text-sm text-on-error-container">{errorSeleccion}</p>
