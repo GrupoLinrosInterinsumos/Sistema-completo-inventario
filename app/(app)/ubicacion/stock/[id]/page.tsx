@@ -12,8 +12,12 @@ import { UbicacionChips } from "../../../stock/ubicacion-chips";
 
 export default async function UbicacionStockDetallePage({
   params,
+  searchParams,
 }: PageProps<"/ubicacion/stock/[id]">) {
   const { id } = await params;
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" ? sp.q : "";
+  const volverHref = q ? `/ubicacion?q=${encodeURIComponent(q)}` : "/ubicacion";
 
   const item = await prisma.inventarioActual.findUnique({
     where: { id },
@@ -38,7 +42,7 @@ export default async function UbicacionStockDetallePage({
   return (
     <div className="max-w-3xl">
       <p className="text-label-md uppercase tracking-wide text-on-surface-variant">
-        <Link href="/ubicacion" className="hover:text-primary">
+        <Link href={volverHref} className="hover:text-primary">
           Ubicación
         </Link>
       </p>
@@ -70,7 +74,7 @@ export default async function UbicacionStockDetallePage({
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <Link href="/ubicacion">
+        <Link href={volverHref}>
           <Button variant="outline">Volver</Button>
         </Link>
         <LinkButton href={`/stock/buscar?q=${encodeURIComponent(item.producto.codigo)}`}>

@@ -1,22 +1,11 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { condicionesPorPalabra } from "@/lib/search";
 import { labelUbicacion } from "@/lib/ubicacion";
-import { Badge } from "@/app/components/ui/badge";
-import { Card } from "@/app/components/ui/card";
 import { LinkButton } from "@/app/components/ui/link-button";
 import { LiveSearch } from "@/app/components/ui/live-search";
-import { IconPlus } from "@/app/components/ui/icons";
-import { ResultsGrid } from "../stock/results-grid";
-
-type ResultadoUnificado = {
-  id: string;
-  nombreProducto: string;
-  ubicacion: string;
-  href: string;
-  origen: "CRAMER" | "SACCO" | "UBICACION";
-};
+import { IconClipboardCheck, IconPlus } from "@/app/components/ui/icons";
+import { ResultadosLista, type ResultadoUnificado } from "./resultados-lista";
 
 export default async function UbicacionPage({
   searchParams,
@@ -51,19 +40,20 @@ export default async function UbicacionPage({
       ])
     : [[], []];
 
+  const qParam = q ? `?q=${encodeURIComponent(q)}` : "";
   const resultados: ResultadoUnificado[] = [
     ...ubicaciones.map((r) => ({
       id: r.id,
       nombreProducto: r.nombreProducto,
       ubicacion: r.rack ? `Rack ${r.rack.numero} — ${r.fila}${r.columna}` : (r.areaLibre ?? ""),
-      href: `/ubicacion/${r.id}`,
+      href: `/ubicacion/${r.id}${qParam}`,
       origen: "UBICACION" as const,
     })),
     ...stockCramerSacco.map((f) => ({
       id: f.id,
       nombreProducto: f.producto.nombreSabor,
       ubicacion: `${labelUbicacion(f.almacen.tipoUbicacion)} ${f.ubicacionNumero} / Caja ${f.nCaja}`,
-      href: `/ubicacion/stock/${f.id}`,
+      href: `/ubicacion/stock/${f.id}${qParam}`,
       origen: f.almacen.nombre as "CRAMER" | "SACCO",
     })),
   ];
@@ -72,6 +62,8 @@ export default async function UbicacionPage({
   // final en vez de mezclarse con resultados que sí tienen dónde está.
   const sinUbicacionClara = (u: string) => u.trim().toUpperCase() === "NC";
   resultados.sort((a, b) => Number(sinUbicacionClara(a.ubicacion)) - Number(sinUbicacionClara(b.ubicacion)));
+
+  const sugerencias = [...new Set(resultados.map((r) => r.nombreProducto))];
 
   return (
     <div className="max-w-6xl">
@@ -82,15 +74,21 @@ export default async function UbicacionPage({
             Busca un producto para ver en qué rack está. Ordenado por el lote que llegó primero.
           </p>
         </div>
-        <LinkButton href="/ubicacion/ingreso">
-          <IconPlus size={16} />
-          Registrar ingreso
-        </LinkButton>
+        <div className="flex gap-2">
+          <LinkButton href="/ubicacion/reporte" variant="outline">
+            <IconClipboardCheck size={16} />
+            Reporte de racks y zonas
+          </LinkButton>
+          <LinkButton href="/ubicacion/ingreso">
+            <IconPlus size={16} />
+            Registrar ingreso
+          </LinkButton>
+        </div>
       </div>
 
       <div className="mt-6">
         <Suspense fallback={<div className="h-11 w-full max-w-md rounded-md bg-surface-container-low" />}>
-          <LiveSearch placeholder="Busca un producto..." />
+          <LiveSearch placeholder="Busca un producto..." sugerencias={sugerencias} />
         </Suspense>
       </div>
 
@@ -100,23 +98,7 @@ export default async function UbicacionPage({
         </p>
       ) : null}
 
-      {resultados.length > 0 ? (
-        <div className="mt-8">
-          <ResultsGrid>
-            {resultados.map((r) => (
-              <Link key={`${r.origen}-${r.id}`} href={r.href}>
-                <Card className="p-4 transition-transform hover:scale-[1.01]">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs text-on-surface-variant">{r.nombreProducto}</p>
-                    <Badge variant={r.origen === "UBICACION" ? "info" : "neutral"}>{r.origen}</Badge>
-                  </div>
-                  <p className="mt-1 text-lg font-bold leading-snug text-primary">{r.ubicacion}</p>
-                </Card>
-              </Link>
-            ))}
-          </ResultsGrid>
-        </div>
-      ) : null}
+      {resultados.length > 0 ? <ResultadosLista resultados={resultados} /> : null}
     </div>
   );
 }

@@ -64,9 +64,19 @@ export async function crearUbicacionStockAction(
   redirect(`/ubicacion/${creado.id}`);
 }
 
-export async function marcarVacioAction(id: string) {
+export async function marcarVacioAction(id: string, volverHref: string) {
   await requireSession();
   await prisma.ubicacionStock.delete({ where: { id } });
   revalidatePath("/ubicacion");
-  redirect("/ubicacion");
+  redirect(volverHref);
+}
+
+export async function marcarVaciosAction(
+  ids: string[]
+): Promise<{ error: string } | { ok: true; cantidad: number }> {
+  await requireSession();
+  if (ids.length === 0) return { error: "No seleccionaste ninguna ubicación." };
+  await prisma.ubicacionStock.deleteMany({ where: { id: { in: ids } } });
+  revalidatePath("/ubicacion");
+  return { ok: true, cantidad: ids.length };
 }

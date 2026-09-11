@@ -9,8 +9,12 @@ import { marcarVacioAction } from "../actions";
 
 export default async function UbicacionDetallePage({
   params,
+  searchParams,
 }: PageProps<"/ubicacion/[id]">) {
   const { id } = await params;
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" ? sp.q : "";
+  const volverHref = q ? `/ubicacion?q=${encodeURIComponent(q)}` : "/ubicacion";
 
   const item = await prisma.ubicacionStock.findUnique({
     where: { id },
@@ -22,7 +26,7 @@ export default async function UbicacionDetallePage({
   return (
     <div className="max-w-3xl">
       <p className="text-label-md uppercase tracking-wide text-on-surface-variant">
-        <Link href="/ubicacion" className="hover:text-primary">
+        <Link href={volverHref} className="hover:text-primary">
           Ubicación
         </Link>
       </p>
@@ -59,10 +63,10 @@ export default async function UbicacionDetallePage({
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <Link href="/ubicacion">
+        <Link href={volverHref}>
           <Button variant="outline">Volver</Button>
         </Link>
-        <form action={marcarVacioAction.bind(null, item.id)}>
+        <form action={marcarVacioAction.bind(null, item.id, volverHref)}>
           <Button type="submit" variant="danger">
             Está Vacío
           </Button>
