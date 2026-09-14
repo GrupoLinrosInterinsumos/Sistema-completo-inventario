@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { formatFechaUTC } from "@/lib/format";
 import { labelUbicacion } from "@/lib/ubicacion";
 import { condicionesPorPalabra } from "@/lib/search";
 import { sistemaAlmacenActual } from "@/lib/sistema-almacen";
@@ -110,6 +111,7 @@ export default async function BuscarStockPage({
                 ubicacionNumero={fila.ubicacionNumero}
                 nCaja={fila.nCaja}
                 lote={fila.lote}
+                fVencimiento={formatFechaUTC(fila.fVencimiento)}
                 cantidadDisponible={fila.cantidadDisponible}
                 unidad="kg"
                 estado={estadoVencimiento(fila.fProduccion, fila.fVencimiento)}

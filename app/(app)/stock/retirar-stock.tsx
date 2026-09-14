@@ -28,6 +28,7 @@ type Props = {
   ubicacionNumero: string;
   nCaja: string;
   lote: string;
+  fVencimiento: string;
   cantidadDisponible: number;
   unidad: string;
   estado: EstadoVencimiento;
@@ -41,6 +42,7 @@ export function RetirarStock({
   ubicacionNumero,
   nCaja,
   lote,
+  fVencimiento,
   cantidadDisponible,
   unidad,
   estado,
@@ -103,6 +105,7 @@ export function RetirarStock({
             <div>
               <p className="text-xs text-on-surface-variant">Lote</p>
               <p className="text-on-surface">{lote}</p>
+              <p className="text-xs text-on-surface-variant">Vence {fVencimiento}</p>
             </div>
           </div>
         </div>
