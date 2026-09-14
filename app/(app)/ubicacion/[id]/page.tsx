@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { formatFechaUTC } from "@/lib/format";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
+import { LinkButton } from "@/app/components/ui/link-button";
 import { IconPackage } from "@/app/components/ui/icons";
 import { RackVisual } from "../rack-visual";
-import { marcarVacioAction } from "../actions";
+import { MarcarVacioBoton } from "./marcar-vacio-boton";
 
 export default async function UbicacionDetallePage({
   params,
@@ -34,11 +35,13 @@ export default async function UbicacionDetallePage({
 
       <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-headline-md text-on-surface">{item.nombreProducto}</h1>
-        <Badge variant="info">
-          {item.lote && item.fVencimiento
-            ? `Lote ${item.lote} · Vence ${formatFechaUTC(item.fVencimiento)}`
-            : `N° de ingreso ${item.ordenIngreso}`}
-        </Badge>
+        {item.lote && item.fVencimiento ? (
+          <Badge variant="info">
+            Lote {item.lote} · Vence {formatFechaUTC(item.fVencimiento)}
+          </Badge>
+        ) : item.ordenIngreso ? (
+          <Badge variant="info">N° de ingreso {item.ordenIngreso}</Badge>
+        ) : null}
       </div>
 
       <p className="mt-1 text-body-sm text-on-surface-variant">
@@ -67,15 +70,27 @@ export default async function UbicacionDetallePage({
         )}
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mt-6 flex flex-wrap items-center gap-3">
         <Link href={volverHref}>
           <Button variant="outline">Volver</Button>
         </Link>
-        <form action={marcarVacioAction.bind(null, item.id, volverHref)}>
-          <Button type="submit" variant="danger">
-            Está Vacío
-          </Button>
-        </form>
+        <LinkButton href={`/ubicacion/${item.id}/mover`} variant="outline">
+          Mover a otra ubicación
+        </LinkButton>
+        <MarcarVacioBoton
+          id={item.id}
+          volverHref={volverHref}
+          datos={{
+            nombreProducto: item.nombreProducto,
+            rackId: item.rackId,
+            fila: item.fila,
+            columna: item.columna,
+            areaLibre: item.areaLibre,
+            lote: item.lote,
+            fVencimiento: item.fVencimiento ? item.fVencimiento.toISOString() : null,
+            ordenIngreso: item.ordenIngreso,
+          }}
+        />
       </div>
     </div>
   );

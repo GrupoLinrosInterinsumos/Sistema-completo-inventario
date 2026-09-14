@@ -13,6 +13,8 @@ export type ResultadoUnificado = {
   ubicacion: string;
   href: string;
   origen: "CRAMER" | "SACCO" | "UBICACION";
+  lote: string | null;
+  vencimiento: string | null;
 };
 
 export function ResultadosLista({ resultados }: { resultados: ResultadoUnificado[] }) {
@@ -87,6 +89,13 @@ export function ResultadosLista({ resultados }: { resultados: ResultadoUnificado
                 <div className="min-w-0">
                   <p className="truncate text-xs text-on-surface-variant">{r.nombreProducto}</p>
                   <p className="truncate text-lg font-bold leading-snug text-primary">{r.ubicacion}</p>
+                  {r.lote || r.vencimiento ? (
+                    <p className="truncate text-xs text-on-surface-variant">
+                      {r.lote ? `Lote ${r.lote}` : null}
+                      {r.lote && r.vencimiento ? " · " : null}
+                      {r.vencimiento ? `Vence ${r.vencimiento}` : null}
+                    </p>
+                  ) : null}
                 </div>
                 <Badge variant={r.origen === "UBICACION" ? "info" : "neutral"}>{r.origen}</Badge>
               </Link>
