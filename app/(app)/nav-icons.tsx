@@ -61,6 +61,12 @@ const PATHS: Record<NavIcon, React.ReactNode> = {
       <path d="M3.5 9.5h17M3.5 15h17M9 3.5v17M14.5 3.5v17" />
     </>
   ),
+  roto: (
+    <>
+      <path d="M10.3 3.9 2.5 18a1.5 1.5 0 0 0 1.3 2.25h16.4a1.5 1.5 0 0 0 1.3-2.25L13.7 3.9a1.5 1.5 0 0 0-2.6 0Z" />
+      <path d="M12 9.5v4M12 17h.01" />
+    </>
+  ),
 };
 
 export function NavIconGlyph({ icon, className }: { icon: NavIcon; className?: string }) {

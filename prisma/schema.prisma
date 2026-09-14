@@ -48,6 +48,11 @@ enum TipoMovimiento {
   ANULACION
 }
 
+enum MotivoDano {
+  ROTO
+  NC
+}
+
 model Usuario {
   id           String   @id @default(cuid())
   nombre       String
@@ -57,8 +62,9 @@ model Usuario {
   activo       Boolean  @default(true)
   createdAt    DateTime @default(now())
 
-  ingresos    Ingreso[]
-  movimientos Movimiento[]
+  ingresos         Ingreso[]
+  movimientos      Movimiento[]
+  productosDanados ProductoDanado[]
 }
 
 model Almacen {
@@ -213,4 +219,21 @@ model UbicacionStock {
   // Una celda física puede tener más de un producto a la vez — el selector
   // solo indica si está ocupada, no exige unicidad.
   @@index([rackId, fila, columna])
+}
+
+// --- Sistema "Roto / NC" ---
+// Aparte de CRAMER/SACCO/Ubicación: registra mercadería que llegó dañada o
+// no conforme, sin importar de qué almacén sea — solo nombre, cantidad y
+// dónde quedó físicamente, para poder reportarlo.
+model ProductoDanado {
+  id             String     @id @default(cuid())
+  nombreProducto String
+  motivo         MotivoDano
+  cantidad       Float
+  unidad         String     @default("kg")
+  ubicacion      String
+  observacion    String?
+  usuarioId      String
+  usuario        Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  createdAt      DateTime   @default(now())
 }

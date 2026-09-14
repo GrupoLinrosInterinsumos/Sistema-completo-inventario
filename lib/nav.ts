@@ -9,9 +9,10 @@ export type NavIcon =
   | "kardex"
   | "productos"
   | "usuarios"
-  | "ubicacion";
+  | "ubicacion"
+  | "roto";
 
-export type Sistema = "almacen" | "ubicacion";
+export type Sistema = "almacen" | "ubicacion" | "roto";
 
 export const NAV_ITEMS: { href: string; label: string; roles: Rol[]; icon: NavIcon; sistema: Sistema }[] = [
   { href: "/dashboard", label: "Dashboard", roles: ["SUPERVISOR"], icon: "dashboard", sistema: "almacen" },
@@ -25,8 +26,12 @@ export const NAV_ITEMS: { href: string; label: string; roles: Rol[]; icon: NavIc
   { href: "/ubicacion", label: "Buscar ubicación", roles: ["ALMACEN", "SUPERVISOR"], icon: "buscar", sistema: "ubicacion" },
   { href: "/ubicacion/ingreso", label: "Registrar ingreso", roles: ["ALMACEN", "SUPERVISOR"], icon: "ingreso", sistema: "ubicacion" },
   { href: "/ubicacion/reporte", label: "Reporte de racks y zonas", roles: ["ALMACEN", "SUPERVISOR"], icon: "desglose", sistema: "ubicacion" },
+  { href: "/roto", label: "Roto / NC", roles: ["ALMACEN", "SUPERVISOR"], icon: "roto", sistema: "roto" },
+  { href: "/roto/nuevo", label: "Registrar", roles: ["ALMACEN", "SUPERVISOR"], icon: "ingreso", sistema: "roto" },
 ];
 
 export function sistemaDePathname(pathname: string): Sistema {
-  return pathname.startsWith("/ubicacion") ? "ubicacion" : "almacen";
+  if (pathname.startsWith("/ubicacion")) return "ubicacion";
+  if (pathname.startsWith("/roto")) return "roto";
+  return "almacen";
 }
