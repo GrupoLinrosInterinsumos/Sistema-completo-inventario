@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { condicionesPorPalabra } from "@/lib/search";
 import { formatFechaUTC } from "@/lib/format";
-import { fechaEfectivaUbicacion, labelUbicacion } from "@/lib/ubicacion";
+import { fechaDesdeOrdenIngreso, fechaEfectivaUbicacion, labelUbicacion } from "@/lib/ubicacion";
 import { LiveSearch } from "@/app/components/ui/live-search";
 import { ResultadosLista, type ResultadoUnificado } from "./resultados-lista";
 import { DeshacerToast } from "./deshacer-toast";
@@ -49,7 +49,12 @@ export default async function UbicacionPage({
       origen: "UBICACION" as const,
       fechaOrden: fechaEfectivaUbicacion(r),
       lote: r.lote,
-      vencimiento: r.fVencimiento ? formatFechaUTC(r.fVencimiento) : null,
+      vencimiento: r.fVencimiento
+        ? formatFechaUTC(r.fVencimiento)
+        : (() => {
+            const fecha = fechaDesdeOrdenIngreso(r.ordenIngreso);
+            return fecha ? formatFechaUTC(fecha) : null;
+          })(),
     })),
     ...stockCramerSacco.map((f) => ({
       id: f.id,

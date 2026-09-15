@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatFechaUTC } from "@/lib/format";
+import { fechaDesdeOrdenIngreso } from "@/lib/ubicacion";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { LinkButton } from "@/app/components/ui/link-button";
@@ -25,6 +26,8 @@ export default async function UbicacionDetallePage({
 
   if (!item) notFound();
 
+  const vencimientoLegado = fechaDesdeOrdenIngreso(item.ordenIngreso);
+
   return (
     <div className="max-w-3xl">
       <p className="text-label-md uppercase tracking-wide text-on-surface-variant">
@@ -39,6 +42,8 @@ export default async function UbicacionDetallePage({
           <Badge variant="info">
             Lote {item.lote} · Vence {formatFechaUTC(item.fVencimiento)}
           </Badge>
+        ) : vencimientoLegado ? (
+          <Badge variant="info">Vence {formatFechaUTC(vencimientoLegado)}</Badge>
         ) : item.ordenIngreso ? (
           <Badge variant="info">N° de ingreso {item.ordenIngreso}</Badge>
         ) : null}
