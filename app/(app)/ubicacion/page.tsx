@@ -3,9 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { condicionesPorPalabra } from "@/lib/search";
 import { formatFechaUTC } from "@/lib/format";
 import { fechaEfectivaUbicacion, labelUbicacion } from "@/lib/ubicacion";
-import { LinkButton } from "@/app/components/ui/link-button";
 import { LiveSearch } from "@/app/components/ui/live-search";
-import { IconClipboardCheck, IconPlus } from "@/app/components/ui/icons";
 import { ResultadosLista, type ResultadoUnificado } from "./resultados-lista";
 import { DeshacerToast } from "./deshacer-toast";
 
@@ -82,25 +80,11 @@ export default async function UbicacionPage({
   return (
     <div className="max-w-6xl">
       <DeshacerToast />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-headline-md text-on-surface">Ubicación</h1>
-          <p className="mt-1 text-body-sm text-on-surface-variant">
-            Busca un producto para ver en qué rack está. Ordenado por el lote que llegó primero.
-          </p>
-        </div>
-        {!q ? (
-          <div className="flex gap-2">
-            <LinkButton href="/ubicacion/reporte" variant="outline">
-              <IconClipboardCheck size={16} />
-              Reporte de racks y zonas
-            </LinkButton>
-            <LinkButton href="/ubicacion/ingreso">
-              <IconPlus size={16} />
-              Registrar ingreso
-            </LinkButton>
-          </div>
-        ) : null}
+      <div>
+        <h1 className="text-headline-md text-on-surface">Ubicación</h1>
+        <p className="mt-1 text-body-sm text-on-surface-variant">
+          Busca un producto para ver en qué rack está. Ordenado por el lote que llegó primero.
+        </p>
       </div>
 
       <div className="mt-6">

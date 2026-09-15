@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/app/logo";
-import { IconAlertTriangle, IconGrid, IconPackage } from "@/app/components/ui/icons";
+import { IconGrid, IconPackage } from "@/app/components/ui/icons";
 import { elegirSistemaAction } from "./actions";
 
 export default function InicioPage() {
@@ -15,7 +15,7 @@ export default function InicioPage() {
       <h1 className="mt-4 text-headline-lg text-on-surface">Sistemas Almacén</h1>
       <p className="mt-1 text-body-sm text-on-surface-variant">Elige el sistema que vas a usar.</p>
 
-      <div className="mt-8 grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8 grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
         {almacenes.map((almacen) => (
           <form key={almacen.label} action={elegirSistemaAction}>
             <input type="hidden" name="sistema" value={almacen.label} />
@@ -38,15 +38,6 @@ export default function InicioPage() {
             <IconGrid size={28} />
           </span>
           <span className="text-headline-sm">UBICACIÓN</span>
-        </Link>
-        <Link
-          href="/roto"
-          className="flex flex-col items-center gap-3 rounded-card border border-outline-variant bg-surface-container-lowest p-8 text-on-surface shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-        >
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-error-container text-on-error-container">
-            <IconAlertTriangle size={28} />
-          </span>
-          <span className="text-headline-sm">ROTO / NC</span>
         </Link>
       </div>
     </div>
