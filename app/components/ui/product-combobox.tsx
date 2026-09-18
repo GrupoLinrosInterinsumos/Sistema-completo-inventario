@@ -10,12 +10,13 @@ type Props = {
   onChange: (productoId: string) => void;
   label: string;
   placeholder?: string;
+  disabled?: boolean;
 };
 
 // Selector de producto con búsqueda por teclado: escribe y filtra en vez de
 // desplazarse por una lista larga. Selecciona con clic, flechas + Enter, o
 // Escape para cerrar sin cambiar nada.
-export function ProductComboBox({ productos, value, onChange, label, placeholder }: Props) {
+export function ProductComboBox({ productos, value, onChange, label, placeholder, disabled }: Props) {
   const idPrefix = useId();
   const seleccionado = productos.find((p) => p.id === value) ?? null;
   const textoDeSeleccion = (p: Producto | null) => (p ? `${p.nombreSabor} (${p.presentacion})` : "");
@@ -93,6 +94,7 @@ export function ProductComboBox({ productos, value, onChange, label, placeholder
         autoComplete="off"
         value={texto}
         placeholder={placeholder}
+        disabled={disabled}
         onFocus={() => {
           setAbierto(true);
           setResaltado(0);
@@ -104,7 +106,7 @@ export function ProductComboBox({ productos, value, onChange, label, placeholder
           if (value) onChange("");
         }}
         onKeyDown={onKeyDown}
-        className="mt-1 w-full rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        className="mt-1 w-full rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-surface-container disabled:text-on-surface-variant"
       />
       {abierto && coincidencias.length > 0 ? (
         <ul

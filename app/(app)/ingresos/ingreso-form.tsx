@@ -6,7 +6,8 @@ import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
 import { ProductComboBox } from "@/app/components/ui/product-combobox";
-import { IconPackage, IconPlus, IconTrash } from "@/app/components/ui/icons";
+import { IconPackage, IconPencil, IconPlus, IconTrash } from "@/app/components/ui/icons";
+import { validarFechasIngreso } from "@/lib/fechas";
 import {
   createIngresoAction,
   crearProductoRapidoAction,
@@ -36,6 +37,9 @@ function formatFechaDMY(iso: string) {
   return `${d}/${m}/${y}`;
 }
 
+const INPUT_CLASS =
+  "mt-1 w-full rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-surface-container disabled:text-on-surface-variant";
+
 const LINEA_VACIA = {
   productoId: "",
   lote: "",
@@ -51,6 +55,7 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
   const [guiaTraslado, setGuiaTraslado] = useState(initial?.guiaTraslado ?? "");
   const [lineas, setLineas] = useState<LineaInput[]>(initial?.lineas ?? []);
   const [nuevaLinea, setNuevaLinea] = useState(LINEA_VACIA);
+  const [editandoIndex, setEditandoIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [productosLocal, setProductosLocal] = useState<Producto[]>(productos);
@@ -97,9 +102,15 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
     setAlmacenId(nuevoAlmacenId);
     setLineas([]);
     setNuevaLinea(LINEA_VACIA);
+    setEditandoIndex(null);
   }
 
-  function agregarLinea() {
+  // Una línea que ya tiene desglose solo deja corregir las fechas: el resto
+  // (producto, lote, cantidad) ya está repartido en paletas/cajas.
+  const lineaEnEdicion = editandoIndex !== null ? lineas[editandoIndex] : undefined;
+  const soloFechas = !!lineaEnEdicion?.tieneDesglose;
+
+  function guardarLinea() {
     if (
       !nuevaLinea.productoId ||
       !nuevaLinea.lote.trim() ||
@@ -110,6 +121,11 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
       setError("Completa producto, lote, fechas y cantidad antes de agregar.");
       return;
     }
+    const errorFechas = validarFechasIngreso(nuevaLinea.fProduccion, nuevaLinea.fVencimiento);
+    if (errorFechas) {
+      setError(errorFechas);
+      return;
+    }
     const cantidad = Number(nuevaLinea.cantidadTotal);
     if (!(cantidad > 0)) {
       setError("La cantidad debe ser mayor a 0.");
@@ -117,21 +133,51 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
     }
 
     setError(null);
-    setLineas((prev) => [
-      ...prev,
-      {
-        productoId: nuevaLinea.productoId,
-        lote: nuevaLinea.lote.trim(),
-        fProduccion: nuevaLinea.fProduccion,
-        fVencimiento: nuevaLinea.fVencimiento,
-        cantidadTotal: cantidad,
-        unidad: nuevaLinea.unidad,
-      },
-    ]);
+    const linea: LineaInput = {
+      id: lineaEnEdicion?.id,
+      tieneDesglose: lineaEnEdicion?.tieneDesglose,
+      productoId: nuevaLinea.productoId,
+      lote: nuevaLinea.lote.trim(),
+      fProduccion: nuevaLinea.fProduccion,
+      fVencimiento: nuevaLinea.fVencimiento,
+      cantidadTotal: cantidad,
+      unidad: nuevaLinea.unidad,
+    };
+    if (editandoIndex !== null) {
+      setLineas((prev) => prev.map((l, i) => (i === editandoIndex ? linea : l)));
+    } else {
+      setLineas((prev) => [...prev, linea]);
+    }
+    setEditandoIndex(null);
+    setNuevaLinea(LINEA_VACIA);
+  }
+
+  function editarLinea(index: number) {
+    const l = lineas[index];
+    setError(null);
+    setEditandoIndex(index);
+    setNuevaLinea({
+      productoId: l.productoId,
+      lote: l.lote,
+      fProduccion: l.fProduccion,
+      fVencimiento: l.fVencimiento,
+      cantidadTotal: String(l.cantidadTotal),
+      unidad: l.unidad,
+    });
+  }
+
+  function cancelarEdicion() {
+    setError(null);
+    setEditandoIndex(null);
     setNuevaLinea(LINEA_VACIA);
   }
 
   function quitarLinea(index: number) {
+    if (lineas[index].tieneDesglose) {
+      setError("Este producto ya tiene desglose por paletas/cajas: no se puede quitar, solo corregir sus fechas.");
+      return;
+    }
+    cancelarEdicion();
     setLineas((prev) => prev.filter((_, i) => i !== index));
   }
 
@@ -204,15 +250,24 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
         </Card>
 
         <Card className="p-6">
-          <p className="text-sm font-semibold text-on-surface">Agregar producto</p>
+          <p className="text-sm font-semibold text-on-surface">
+            {editandoIndex !== null ? `Editar línea ${editandoIndex + 1}` : "Agregar producto"}
+          </p>
+          {soloFechas ? (
+            <p className="mt-1 text-xs text-on-surface-variant">
+              Este producto ya tiene desglose por paletas/cajas: solo puedes corregir las fechas. El stock se
+              actualiza con la fecha correcta.
+            </p>
+          ) : null}
 
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
-            <div className="sm:col-span-2 lg:col-span-2">
+          <div className="mt-4 space-y-3">
+            <div>
               <ProductComboBox
                 label="Producto"
                 placeholder="Escribe para buscar..."
                 productos={productosDelAlmacen}
                 value={nuevaLinea.productoId}
+                disabled={soloFechas}
                 onChange={(productoId) => setNuevaLinea((p) => ({ ...p, productoId }))}
               />
               {productosDelAlmacen.length === 0 ? (
@@ -221,13 +276,15 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
                 </p>
               ) : null}
 
-              <button
-                type="button"
-                onClick={() => setNuevoProductoAbierto((v) => !v)}
-                className="mt-1.5 text-xs font-medium text-primary transition-colors hover:text-primary-container"
-              >
-                {nuevoProductoAbierto ? "Cancelar" : "+ El producto no está en la lista, agregarlo"}
-              </button>
+              {!soloFechas ? (
+                <button
+                  type="button"
+                  onClick={() => setNuevoProductoAbierto((v) => !v)}
+                  className="mt-1.5 text-xs font-medium text-primary transition-colors hover:text-primary-container"
+                >
+                  {nuevoProductoAbierto ? "Cancelar" : "+ El producto no está en la lista, agregarlo"}
+                </button>
+              ) : null}
 
               {nuevoProductoAbierto ? (
                 <div className="mt-2 space-y-2 rounded-md border border-outline-variant bg-surface-container-low p-3">
@@ -264,47 +321,54 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
               ) : null}
             </div>
 
-            <div>
-              <label htmlFor="nueva-linea-lote" className="block text-label-md uppercase tracking-wide text-on-surface-variant">
-                Lote
-              </label>
-              <input
-                id="nueva-linea-lote"
-                type="text"
-                value={nuevaLinea.lote}
-                onChange={(e) => setNuevaLinea((p) => ({ ...p, lote: e.target.value }))}
-                className="mt-1 w-full rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <label htmlFor="nueva-linea-lote" className="block text-label-md uppercase tracking-wide text-on-surface-variant">
+                  Lote
+                </label>
+                <input
+                  id="nueva-linea-lote"
+                  type="text"
+                  value={nuevaLinea.lote}
+                  disabled={soloFechas}
+                  onChange={(e) => setNuevaLinea((p) => ({ ...p, lote: e.target.value }))}
+                  className={INPUT_CLASS}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="nueva-linea-fprod" className="block text-label-md uppercase tracking-wide text-on-surface-variant">
+                  F. Producción
+                </label>
+                <input
+                  id="nueva-linea-fprod"
+                  type="date"
+                  min="2000-01-01"
+                  max="2100-12-31"
+                  value={nuevaLinea.fProduccion}
+                  onChange={(e) => setNuevaLinea((p) => ({ ...p, fProduccion: e.target.value }))}
+                  className={INPUT_CLASS}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="nueva-linea-fvenc" className="block text-label-md uppercase tracking-wide text-on-surface-variant">
+                  F. Vencimiento
+                </label>
+                <input
+                  id="nueva-linea-fvenc"
+                  type="date"
+                  min="2000-01-01"
+                  max="2100-12-31"
+                  value={nuevaLinea.fVencimiento}
+                  onChange={(e) => setNuevaLinea((p) => ({ ...p, fVencimiento: e.target.value }))}
+                  className={INPUT_CLASS}
+                />
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="nueva-linea-fprod" className="block text-label-md uppercase tracking-wide text-on-surface-variant">
-                F. Producción
-              </label>
-              <input
-                id="nueva-linea-fprod"
-                type="date"
-                value={nuevaLinea.fProduccion}
-                onChange={(e) => setNuevaLinea((p) => ({ ...p, fProduccion: e.target.value }))}
-                className="mt-1 w-full rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="nueva-linea-fvenc" className="block text-label-md uppercase tracking-wide text-on-surface-variant">
-                F. Vencimiento
-              </label>
-              <input
-                id="nueva-linea-fvenc"
-                type="date"
-                value={nuevaLinea.fVencimiento}
-                onChange={(e) => setNuevaLinea((p) => ({ ...p, fVencimiento: e.target.value }))}
-                className="mt-1 w-full rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <div className="w-2/3">
+            <div className="grid grid-cols-[2fr_1fr] gap-3 sm:max-w-sm">
+              <div>
                 <label htmlFor="nueva-linea-cantidad" className="block text-label-md uppercase tracking-wide text-on-surface-variant">
                   Cantidad
                 </label>
@@ -314,21 +378,23 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
                   min="0"
                   step="0.01"
                   value={nuevaLinea.cantidadTotal}
+                  disabled={soloFechas}
                   onChange={(e) =>
                     setNuevaLinea((p) => ({ ...p, cantidadTotal: e.target.value }))
                   }
-                  className="mt-1 w-full rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className={INPUT_CLASS}
                 />
               </div>
-              <div className="w-1/3">
+              <div>
                 <label htmlFor="nueva-linea-unidad" className="block text-label-md uppercase tracking-wide text-on-surface-variant">
                   Unidad
                 </label>
                 <select
                   id="nueva-linea-unidad"
                   value={nuevaLinea.unidad}
+                  disabled={soloFechas}
                   onChange={(e) => setNuevaLinea((p) => ({ ...p, unidad: e.target.value }))}
-                  className="mt-1 w-full rounded-md border border-outline-variant px-2 py-1.5 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className={INPUT_CLASS}
                 >
                   <option value="kg">kg</option>
                   <option value="cajas">cajas</option>
@@ -337,10 +403,26 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
             </div>
           </div>
 
-          <Button variant="outline" size="sm" className="mt-4" onClick={agregarLinea}>
-            <IconPlus size={16} />
-            Añadir a la lista
-          </Button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={guardarLinea}>
+              {editandoIndex !== null ? (
+                <>
+                  <IconPencil size={16} />
+                  Actualizar línea
+                </>
+              ) : (
+                <>
+                  <IconPlus size={16} />
+                  Añadir a la lista
+                </>
+              )}
+            </Button>
+            {editandoIndex !== null ? (
+              <Button variant="outline" size="sm" onClick={cancelarEdicion}>
+                Cancelar
+              </Button>
+            ) : null}
+          </div>
         </Card>
       </div>
 
@@ -370,22 +452,43 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
                       <p className="text-sm font-medium text-on-surface">
                         {productosPorId.get(linea.productoId)?.nombreSabor ?? "—"}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => quitarLinea(index)}
-                        aria-label="Quitar producto"
-                        className="rounded p-1 text-secondary transition-colors hover:bg-error-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      >
-                        <IconTrash size={16} />
-                      </button>
+                      <div className="flex shrink-0 items-center">
+                        <button
+                          type="button"
+                          onClick={() => editarLinea(index)}
+                          aria-label="Editar producto"
+                          className="rounded p-1 text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          <IconPencil size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => quitarLinea(index)}
+                          aria-label="Quitar producto"
+                          className="rounded p-1 text-secondary transition-colors hover:bg-error-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          <IconTrash size={16} />
+                        </button>
+                      </div>
                     </div>
                     <div className="mt-1.5 flex flex-wrap gap-1.5 text-xs text-on-surface-variant">
                       <span className="rounded bg-surface-container px-1.5 py-0.5">
                         {linea.cantidadTotal} {linea.unidad}
                       </span>
                       <span className="rounded bg-surface-container px-1.5 py-0.5">Lote: {linea.lote}</span>
-                      <span className="rounded bg-surface-container px-1.5 py-0.5">
-                        Vence {formatFechaDMY(linea.fVencimiento)}
+                      <span
+                        className={`rounded px-1.5 py-0.5 ${
+                          linea.fProduccion ? "bg-surface-container" : "bg-error-container text-on-error-container"
+                        }`}
+                      >
+                        Prod {formatFechaDMY(linea.fProduccion) || "¡corregir!"}
+                      </span>
+                      <span
+                        className={`rounded px-1.5 py-0.5 ${
+                          linea.fVencimiento ? "bg-surface-container" : "bg-error-container text-on-error-container"
+                        }`}
+                      >
+                        Vence {formatFechaDMY(linea.fVencimiento) || "¡corregir!"}
                       </span>
                     </div>
                   </li>

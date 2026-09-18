@@ -125,6 +125,13 @@ export const IconTrash = (p: IconProps) => (
   </Svg>
 );
 
+export const IconPencil = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3Z" />
+    <path d="m14.5 7.5 3 3" />
+  </Svg>
+);
+
 export const IconGrid = (p: IconProps) => (
   <Svg {...p}>
     <rect x="3.5" y="3.5" width="7" height="7" rx="1" />

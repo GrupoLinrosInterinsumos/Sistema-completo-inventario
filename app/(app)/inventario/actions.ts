@@ -143,6 +143,11 @@ export async function subirAStockAction(
         },
         update: {
           cantidadDisponible: { increment: fila.cantidadKg },
+          // Mismo lote en la misma caja = mismas fechas físicas. Si un ingreso
+          // anterior se cargó con la fecha mal y se volvió a ingresar bien, la
+          // fila existente debe quedarse con la fecha corregida y no con la vieja.
+          fProduccion: fila.fProduccion,
+          fVencimiento: fila.fVencimiento,
         },
       });
 

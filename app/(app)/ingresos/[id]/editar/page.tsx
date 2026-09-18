@@ -1,11 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { fechaParaInput } from "@/lib/fechas";
 import { IngresoForm } from "../../ingreso-form";
-
-function toDateInput(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
 
 export default async function EditarIngresoPage({
   params,
@@ -14,7 +11,10 @@ export default async function EditarIngresoPage({
   const session = await auth();
 
   const [ingreso, almacenes, productos] = await Promise.all([
-    prisma.ingreso.findUnique({ where: { id }, include: { detalles: true } }),
+    prisma.ingreso.findUnique({
+      where: { id },
+      include: { detalles: { include: { _count: { select: { desgloses: true } } } } },
+    }),
     prisma.almacen.findMany({ orderBy: { nombre: "asc" } }),
     prisma.producto.findMany({ where: { activo: true }, orderBy: { nombreSabor: "asc" } }),
   ]);
@@ -44,10 +44,12 @@ export default async function EditarIngresoPage({
             almacenId: ingreso.almacenId,
             guiaTraslado: ingreso.guiaTraslado ?? "",
             lineas: ingreso.detalles.map((d) => ({
+              id: d.id,
+              tieneDesglose: d._count.desgloses > 0,
               productoId: d.productoId,
               lote: d.lote,
-              fProduccion: toDateInput(d.fProduccion),
-              fVencimiento: toDateInput(d.fVencimiento),
+              fProduccion: fechaParaInput(d.fProduccion),
+              fVencimiento: fechaParaInput(d.fVencimiento),
               cantidadTotal: d.cantidadTotal,
               unidad: d.unidad,
             })),

@@ -2,6 +2,7 @@
 // a calendar date only (no meaningful time-of-day), so formatting must pin to
 // UTC — otherwise a negative local timezone offset shows the previous day.
 export function formatFechaUTC(date: Date) {
+  if (Number.isNaN(date.getTime())) return "Fecha inválida";
   return date.toLocaleDateString("es-PE", { timeZone: "UTC" });
 }
 
