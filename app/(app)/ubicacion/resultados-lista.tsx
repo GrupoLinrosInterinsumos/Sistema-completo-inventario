@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { marcarVaciosAction } from "./actions";
+import { DescontarStock } from "./descontar-stock";
 
 export type ResultadoUnificado = {
   id: string;
@@ -15,6 +16,9 @@ export type ResultadoUnificado = {
   origen: "CRAMER" | "SACCO" | "FRACCIONAMIENTO" | "UBICACION";
   lote: string | null;
   vencimiento: string | null;
+  // Solo para stock de CRAMER/SACCO/FRACCIONAMIENTO: permite descontar desde
+  // aquí. Las ubicaciones de rack/zona son solo de consulta.
+  stock?: { disponible: number; unidad: string };
 };
 
 export function ResultadosLista({ resultados }: { resultados: ResultadoUnificado[] }) {
@@ -73,7 +77,7 @@ export function ResultadosLista({ resultados }: { resultados: ResultadoUnificado
           const seleccionable = r.origen === "UBICACION";
           const marcado = seleccionados.has(r.id);
           return (
-            <li key={`${r.origen}-${r.id}`} className="flex items-center gap-3 px-4 py-3">
+            <li key={`${r.origen}-${r.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3">
               {seleccionable ? (
                 <input
                   type="checkbox"
@@ -89,16 +93,21 @@ export function ResultadosLista({ resultados }: { resultados: ResultadoUnificado
                 <div className="min-w-0">
                   <p className="truncate text-xs text-on-surface-variant">{r.nombreProducto}</p>
                   <p className="truncate text-lg font-bold leading-snug text-primary">{r.ubicacion}</p>
-                  {r.lote || r.vencimiento ? (
+                  {r.lote || r.vencimiento || r.stock ? (
                     <p className="truncate text-xs text-on-surface-variant">
-                      {r.lote ? `Lote ${r.lote}` : null}
-                      {r.lote && r.vencimiento ? " · " : null}
-                      {r.vencimiento ? `Vence ${r.vencimiento}` : null}
+                      {[
+                        r.lote ? `Lote ${r.lote}` : null,
+                        r.vencimiento ? `Vence ${r.vencimiento}` : null,
+                        r.stock ? `${r.stock.disponible} ${r.stock.unidad} disponibles` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   ) : null}
                 </div>
                 <Badge variant={r.origen === "UBICACION" ? "info" : "neutral"}>{r.origen}</Badge>
               </Link>
+              {r.stock ? <DescontarStock id={r.id} disponible={r.stock.disponible} unidad={r.stock.unidad} /> : null}
             </li>
           );
         })}

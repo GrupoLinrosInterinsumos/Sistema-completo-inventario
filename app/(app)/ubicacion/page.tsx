@@ -65,6 +65,7 @@ export default async function UbicacionPage({
       fechaOrden: f.fVencimiento.getTime(),
       lote: f.lote,
       vencimiento: formatFechaUTC(f.fVencimiento),
+      stock: { disponible: f.cantidadDisponible, unidad: "kg" },
     })),
   ];
 

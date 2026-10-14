@@ -31,12 +31,11 @@ export function NombreProductoInput({ id, nombresSugeridos, nombresFijos = [], v
 
   const filtro = valor.trim().toLowerCase();
   const fijos = nombresFijos.filter((n) => n.toLowerCase().includes(filtro) && n.toLowerCase() !== filtro);
-  const delCatalogo =
-    filtro === ""
-      ? []
-      : nombresSugeridos.filter(
-          (n) => n.toLowerCase().includes(filtro) && n.toLowerCase() !== filtro && !nombresFijos.includes(n)
-        );
+  // Con el campo vacío se ofrecen todos los productos (la lista tiene scroll);
+  // al escribir se filtran por lo tecleado.
+  const delCatalogo = nombresSugeridos
+    .filter((n) => n.toLowerCase().includes(filtro) && n.toLowerCase() !== filtro && !nombresFijos.includes(n))
+    .sort((a, b) => a.localeCompare(b, "es"));
   const coincidencias = [...fijos, ...delCatalogo];
 
   return (
@@ -57,7 +56,7 @@ export function NombreProductoInput({ id, nombresSugeridos, nombresFijos = [], v
       />
       {abierto && coincidencias.length > 0 ? (
         <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-outline-variant bg-surface-container-lowest shadow-md">
-          {coincidencias.slice(0, 8 + fijos.length).map((n) => (
+          {coincidencias.map((n) => (
             <li key={n}>
               <button
                 type="button"
