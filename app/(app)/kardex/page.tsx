@@ -190,6 +190,7 @@ export default async function KardexPage({ searchParams }: PageProps<"/kardex">)
               <th className="px-4 py-2 text-left text-xs font-medium uppercase text-on-surface-variant">Producto</th>
               <th className="px-4 py-2 text-left text-xs font-medium uppercase text-on-surface-variant">Almacén</th>
               <th className="px-4 py-2 text-left text-xs font-medium uppercase text-on-surface-variant">Ubicación</th>
+              <th className="px-4 py-2 text-left text-xs font-medium uppercase text-on-surface-variant">Lote</th>
               <th className="px-4 py-2 text-left text-xs font-medium uppercase text-on-surface-variant">Cantidad</th>
               <th className="px-4 py-2 text-left text-xs font-medium uppercase text-on-surface-variant">Usuario</th>
               <th className="px-4 py-2 text-left text-xs font-medium uppercase text-on-surface-variant">Referencia / Motivo</th>
@@ -217,6 +218,9 @@ export default async function KardexPage({ searchParams }: PageProps<"/kardex">)
                     ? `${labelUbicacion(m.inventarioActual.almacen.tipoUbicacion)} ${m.inventarioActual.ubicacionNumero} / Caja ${m.inventarioActual.nCaja}`
                     : "—"}
                 </td>
+                <td className="whitespace-nowrap px-4 py-2 text-sm text-on-surface-variant">
+                  {m.inventarioActual?.lote ?? "—"}
+                </td>
                 <td className="px-4 py-2 text-sm text-on-surface-variant">{m.cantidad} kg</td>
                 <td className="px-4 py-2 text-sm text-on-surface-variant">{m.usuario.nombre}</td>
                 <td className="px-4 py-2 text-sm text-on-surface-variant">
@@ -226,7 +230,7 @@ export default async function KardexPage({ searchParams }: PageProps<"/kardex">)
             ))}
             {movimientos.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-sm text-on-surface-variant">
+                <td colSpan={9} className="px-4 py-6 text-center text-sm text-on-surface-variant">
                   No hay movimientos que coincidan con los filtros.
                 </td>
               </tr>

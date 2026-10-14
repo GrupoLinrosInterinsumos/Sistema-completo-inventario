@@ -5,6 +5,9 @@ import { useEffect, useRef, useState } from "react";
 type Props = {
   id: string;
   nombresSugeridos: string[];
+  // Nombres genéricos que siempre se ofrecen primero (ej. "Producto no
+  // conforme"), incluso con el campo vacío.
+  nombresFijos?: readonly string[];
   valor: string;
   onChange: (valor: string) => void;
 };
@@ -12,7 +15,7 @@ type Props = {
 // Campo de texto libre con autocompletar: sugiere nombres ya usados en
 // Ubicación o del catálogo mientras se escribe, para no tener que escribir
 // el nombre completo — pero sigue siendo texto libre (no obliga a elegir).
-export function NombreProductoInput({ id, nombresSugeridos, valor, onChange }: Props) {
+export function NombreProductoInput({ id, nombresSugeridos, nombresFijos = [], valor, onChange }: Props) {
   const [abierto, setAbierto] = useState(false);
   const contenedorRef = useRef<HTMLDivElement>(null);
 
@@ -27,10 +30,14 @@ export function NombreProductoInput({ id, nombresSugeridos, valor, onChange }: P
   }, []);
 
   const filtro = valor.trim().toLowerCase();
-  const coincidencias =
+  const fijos = nombresFijos.filter((n) => n.toLowerCase().includes(filtro) && n.toLowerCase() !== filtro);
+  const delCatalogo =
     filtro === ""
       ? []
-      : nombresSugeridos.filter((n) => n.toLowerCase().includes(filtro) && n.toLowerCase() !== filtro);
+      : nombresSugeridos.filter(
+          (n) => n.toLowerCase().includes(filtro) && n.toLowerCase() !== filtro && !nombresFijos.includes(n)
+        );
+  const coincidencias = [...fijos, ...delCatalogo];
 
   return (
     <div ref={contenedorRef} className="relative">
@@ -50,7 +57,7 @@ export function NombreProductoInput({ id, nombresSugeridos, valor, onChange }: P
       />
       {abierto && coincidencias.length > 0 ? (
         <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-outline-variant bg-surface-container-lowest shadow-md">
-          {coincidencias.slice(0, 8).map((n) => (
+          {coincidencias.slice(0, 8 + fijos.length).map((n) => (
             <li key={n}>
               <button
                 type="button"

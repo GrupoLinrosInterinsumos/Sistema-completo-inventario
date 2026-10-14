@@ -72,6 +72,8 @@ export default async function BuscarStockPage({
     porAlmacen.get(key)!.push(fila);
   }
 
+  const sugerencias = [...new Set(filas.map((f) => f.producto.nombreSabor))];
+
   return (
     <div className="max-w-6xl">
       <h1 className="text-headline-md text-on-surface">Buscar producto</h1>
@@ -82,7 +84,7 @@ export default async function BuscarStockPage({
 
       <div className="mt-6">
         <Suspense fallback={<div className="h-11 w-full max-w-md rounded-md bg-surface-container-low" />}>
-          <LiveSearch placeholder="Buscar por nombre, SKU o lote..." />
+          <LiveSearch placeholder="Buscar por nombre, SKU o lote..." sugerencias={sugerencias} />
         </Suspense>
       </div>
 

@@ -3,6 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import { useActionState } from "react";
 import { Button } from "@/app/components/ui/button";
+import { NOMBRES_PRODUCTO_FIJOS, ZONAS_FIJAS } from "@/lib/ubicaciones-fijas";
 import { crearUbicacionStockAction, type UbicacionFormState } from "./actions";
 import { RackPicker } from "./rack-picker";
 import { NombreProductoInput } from "./nombre-producto-input";
@@ -25,10 +26,14 @@ export function UbicacionIngresoForm({
     undefined
   );
   const [nombreProducto, setNombreProducto] = useState("");
-  const [modo, setModo] = useState<"rack" | "area">("rack");
-  const [rackId, setRackId] = useState(racks[0]?.id ?? "");
+  // Una sola lista con todas las ubicaciones: "rack:<id>" o "zona:<nombre>".
+  const [destino, setDestino] = useState(racks[0] ? `rack:${racks[0].id}` : `zona:${ZONAS_FIJAS[0]}`);
   const [celdas, setCeldas] = useState<{ fila: string; columna: number }[]>([]);
   const [errorSeleccion, setErrorSeleccion] = useState<string | null>(null);
+
+  const modo: "rack" | "area" = destino.startsWith("rack:") ? "rack" : "area";
+  const rackId = modo === "rack" ? destino.slice("rack:".length) : "";
+  const zona = modo === "area" ? destino.slice("zona:".length) : "";
 
   const rackSeleccionado = useMemo(() => racks.find((r) => r.id === rackId), [racks, rackId]);
 
@@ -37,9 +42,10 @@ export function UbicacionIngresoForm({
     [ocupadas, rackId]
   );
 
-  function cambiarRack(nuevoRackId: string) {
-    setRackId(nuevoRackId);
+  function cambiarDestino(nuevo: string) {
+    setDestino(nuevo);
     setCeldas([]);
+    setErrorSeleccion(null);
   }
 
   function alternarCelda(f: string, c: number) {
@@ -60,6 +66,8 @@ export function UbicacionIngresoForm({
       }
       formData.set("rackId", rackId);
       formData.set("celdas", JSON.stringify(celdas));
+    } else {
+      formData.set("areaLibre", zona);
     }
     setErrorSeleccion(null);
     formAction(formData);
@@ -74,57 +82,41 @@ export function UbicacionIngresoForm({
         <NombreProductoInput
           id={`${idPrefix}-nombre`}
           nombresSugeridos={nombresSugeridos}
+          nombresFijos={NOMBRES_PRODUCTO_FIJOS}
           valor={nombreProducto}
           onChange={setNombreProducto}
         />
       </div>
 
       <div>
-        <p className="block text-label-md uppercase tracking-wide text-on-surface-variant">Tipo de ubicación</p>
-        <div className="mt-1.5 flex gap-2">
-          <button
-            type="button"
-            onClick={() => setModo("rack")}
-            className={`rounded-chip px-3 py-1.5 text-sm font-medium transition-colors ${
-              modo === "rack" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface-variant hover:bg-surface-container-low"
-            }`}
-          >
-            Rack
-          </button>
-          <button
-            type="button"
-            onClick={() => setModo("area")}
-            className={`rounded-chip px-3 py-1.5 text-sm font-medium transition-colors ${
-              modo === "area" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface-variant hover:bg-surface-container-low"
-            }`}
-          >
-            Área libre (Piso, Gabinete...)
-          </button>
-        </div>
+        <label htmlFor={`${idPrefix}-destino`} className="block text-label-md uppercase tracking-wide text-on-surface-variant">
+          Ubicación
+        </label>
+        <select
+          id={`${idPrefix}-destino`}
+          value={destino}
+          onChange={(e) => cambiarDestino(e.target.value)}
+          className="mt-1 w-full max-w-xs rounded-md border border-outline-variant px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        >
+          <optgroup label="Racks">
+            {racks.map((r) => (
+              <option key={r.id} value={`rack:${r.id}`}>
+                Rack {r.numero}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Zonas">
+            {ZONAS_FIJAS.map((z) => (
+              <option key={z} value={`zona:${z}`}>
+                {z}
+              </option>
+            ))}
+          </optgroup>
+        </select>
       </div>
 
       {modo === "rack" ? (
         <>
-          <div>
-            <label htmlFor={`${idPrefix}-rack`} className="block text-label-md uppercase tracking-wide text-on-surface-variant">
-              Rack
-            </label>
-            <select
-              id={`${idPrefix}-rack`}
-              name="rackId"
-              required
-              value={rackId}
-              onChange={(e) => cambiarRack(e.target.value)}
-              className="mt-1 w-full max-w-xs rounded-md border border-outline-variant px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              {racks.map((r) => (
-                <option key={r.id} value={r.id}>
-                  Rack {r.numero}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <div>
             <p className="block text-label-md uppercase tracking-wide text-on-surface-variant">
               Ubicación — haz clic en una o varias celdas
@@ -156,19 +148,9 @@ export function UbicacionIngresoForm({
           </div>
         </>
       ) : (
-        <div>
-          <label htmlFor={`${idPrefix}-area`} className="block text-label-md uppercase tracking-wide text-on-surface-variant">
-            Nombre de la zona
-          </label>
-          <input
-            id={`${idPrefix}-area`}
-            name="areaLibre"
-            type="text"
-            required
-            placeholder="Ej. Piso, Gabinete, Saldo químico 3..."
-            className="mt-1 w-full max-w-xs rounded-md border border-outline-variant px-3 py-2 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
+        <p className="text-sm text-on-surface">
+          El producto quedará en <span className="font-semibold">{zona}</span> (zona sin celdas).
+        </p>
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

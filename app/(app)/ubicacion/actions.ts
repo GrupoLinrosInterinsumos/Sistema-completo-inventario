@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { esZonaFija } from "@/lib/ubicaciones-fijas";
 
 export type UbicacionFormState = { error?: string } | undefined;
 
@@ -34,7 +35,7 @@ export async function crearUbicacionStockAction(
 
   if (modo === "area") {
     const areaLibre = String(formData.get("areaLibre") ?? "").trim();
-    if (!areaLibre) return { error: "Escribe el nombre de la zona (ej. Piso, Gabinete)." };
+    if (!esZonaFija(areaLibre)) return { error: "Elige una zona de la lista." };
 
     const creado = await prisma.ubicacionStock.create({
       data: { nombreProducto, areaLibre, lote, fVencimiento },
@@ -146,7 +147,7 @@ export async function moverUbicacionAction(
 
   if (modo === "area") {
     const areaLibre = String(formData.get("areaLibre") ?? "").trim();
-    if (!areaLibre) return { error: "Escribe el nombre de la zona (ej. Piso, Gabinete)." };
+    if (!esZonaFija(areaLibre)) return { error: "Elige una zona de la lista." };
     await prisma.ubicacionStock.update({
       where: { id },
       data: { areaLibre, rackId: null, fila: null, columna: null },
