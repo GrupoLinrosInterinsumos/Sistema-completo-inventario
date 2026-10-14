@@ -61,7 +61,7 @@ export default async function UbicacionPage({
       nombreProducto: f.producto.nombreSabor,
       ubicacion: `${labelUbicacion(f.almacen.tipoUbicacion)} ${f.ubicacionNumero} / Caja ${f.nCaja}`,
       href: `/ubicacion/stock/${f.id}${qParam}`,
-      origen: f.almacen.nombre as "CRAMER" | "SACCO",
+      origen: f.almacen.nombre,
       fechaOrden: f.fVencimiento.getTime(),
       lote: f.lote,
       vencimiento: formatFechaUTC(f.fVencimiento),

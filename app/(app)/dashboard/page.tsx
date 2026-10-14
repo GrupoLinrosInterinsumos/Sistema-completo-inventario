@@ -2,7 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { diaCortoLima, fechaLimaISO, formatFechaUTC } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import type { NombreAlmacenSistema } from "@/lib/sistema-almacen";
+import { esSistemaAlmacen, type NombreAlmacenSistema } from "@/lib/sistema-almacen";
 import { labelUbicacion } from "@/lib/ubicacion";
 import { rangoProximosAVencer } from "@/lib/vencimientos";
 import { ActivityChart } from "@/app/components/ui/activity-chart";
@@ -20,8 +20,7 @@ export default async function DashboardPage({
   // Sistemas Almacén (?almacen=...) — el link "Dashboard" del menú siempre
   // muestra todo, sin quedar "pegado" a la última elección.
   const almacenParam = typeof params.almacen === "string" ? params.almacen : "";
-  const sistema: NombreAlmacenSistema | null =
-    almacenParam === "CRAMER" || almacenParam === "SACCO" ? almacenParam : null;
+  const sistema: NombreAlmacenSistema | null = esSistemaAlmacen(almacenParam) ? almacenParam : null;
   const now = new Date();
   const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
   const hace7Dias = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -49,7 +48,17 @@ export default async function DashboardPage({
         where: {
           tipo: { in: ["INGRESO", "SALIDA"] },
           fechaHora: { gte: hace7Dias },
-          ...(sistema ? { producto: { almacen: { nombre: sistema } } } : {}),
+          // Por el almacén donde quedó la caja (un producto puede estar en
+          // FRACCIONAMIENTO aunque su catálogo sea CRAMER); los movimientos
+          // sin caja vinculada caen al catálogo del producto como antes.
+          ...(sistema
+            ? {
+                OR: [
+                  { inventarioActual: { almacen: { nombre: sistema } } },
+                  { inventarioActualId: null, producto: { almacen: { nombre: sistema } } },
+                ],
+              }
+            : {}),
         },
         select: { tipo: true, cantidad: true, fechaHora: true },
       }),

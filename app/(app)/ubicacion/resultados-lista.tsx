@@ -12,7 +12,7 @@ export type ResultadoUnificado = {
   nombreProducto: string;
   ubicacion: string;
   href: string;
-  origen: "CRAMER" | "SACCO" | "UBICACION";
+  origen: "CRAMER" | "SACCO" | "FRACCIONAMIENTO" | "UBICACION";
   lote: string | null;
   vencimiento: string | null;
 };

@@ -14,6 +14,12 @@ async function main() {
     create: { nombre: "SACCO", tipoUbicacion: "SLOT" },
   });
 
+  await prisma.almacen.upsert({
+    where: { nombre: "FRACCIONAMIENTO" },
+    update: {},
+    create: { nombre: "FRACCIONAMIENTO", tipoUbicacion: "PALETA" },
+  });
+
   const email = "admin@gli.pe";
   const passwordHash = await bcrypt.hash("Almacen2026!", 10);
 

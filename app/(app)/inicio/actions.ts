@@ -3,14 +3,14 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { SISTEMA_ALMACEN_COOKIE } from "@/lib/sistema-almacen";
+import { SISTEMA_ALMACEN_COOKIE, esSistemaAlmacen } from "@/lib/sistema-almacen";
 
 export async function elegirSistemaAction(formData: FormData) {
   const session = await auth();
   if (!session) redirect("/login");
 
   const sistema = String(formData.get("sistema") ?? "");
-  if (sistema !== "CRAMER" && sistema !== "SACCO") {
+  if (!esSistemaAlmacen(sistema)) {
     throw new Error("Sistema no válido.");
   }
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { condicionesPorPalabraEnCampos } from "@/lib/search";
+import { esSistemaAlmacen } from "@/lib/sistema-almacen";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { LinkButton } from "@/app/components/ui/link-button";
@@ -20,7 +21,7 @@ export default async function ProductosPage({ searchParams }: PageProps<"/produc
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
   const where = {
-    ...(almacenFiltro ? { almacen: { nombre: almacenFiltro as "CRAMER" | "SACCO" } } : {}),
+    ...(esSistemaAlmacen(almacenFiltro) ? { almacen: { nombre: almacenFiltro } } : {}),
     ...(q ? { AND: condicionesPorPalabraEnCampos(["nombreSabor", "codigo"], q) } : {}),
   };
 

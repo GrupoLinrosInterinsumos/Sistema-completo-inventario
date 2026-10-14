@@ -69,9 +69,12 @@ export function IngresoForm({ almacenes, productos, mode, ingresoId, initial }: 
     [productosLocal]
   );
 
+  // Lo que se fracciona sale de cualquier catálogo (CRAMER, SACCO...), así que
+  // en FRACCIONAMIENTO se puede elegir cualquier producto activo.
+  const esFraccionamiento = almacenes.find((a) => a.id === almacenId)?.nombre === "FRACCIONAMIENTO";
   const productosDelAlmacen = useMemo(
-    () => productosLocal.filter((p) => p.almacenId === almacenId),
-    [productosLocal, almacenId]
+    () => (esFraccionamiento ? productosLocal : productosLocal.filter((p) => p.almacenId === almacenId)),
+    [productosLocal, almacenId, esFraccionamiento]
   );
 
   function crearProductoNuevo() {

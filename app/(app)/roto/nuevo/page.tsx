@@ -2,9 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { NuevoDanadoForm } from "./nuevo-form";
 
 export default async function NuevoRotoPage() {
-  const [productos, ubicaciones] = await Promise.all([
+  const [productos, ubicaciones, racks] = await Promise.all([
     prisma.producto.findMany({ select: { nombreSabor: true }, distinct: ["nombreSabor"] }),
     prisma.ubicacionStock.findMany({ select: { nombreProducto: true }, distinct: ["nombreProducto"] }),
+    prisma.rack.findMany({ select: { numero: true }, orderBy: { numero: "asc" } }),
   ]);
   const nombresSugeridos = [
     ...new Set([...productos.map((p) => p.nombreSabor), ...ubicaciones.map((u) => u.nombreProducto)]),
@@ -12,13 +13,13 @@ export default async function NuevoRotoPage() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-headline-md text-on-surface">Registrar producto roto / NC</h1>
+      <h1 className="text-headline-md text-on-surface">Registrar producto roto / NC / observado</h1>
       <p className="mt-1 text-body-sm text-on-surface-variant">
-        Mercadería que llegó dañada o no conforme, sin importar de qué almacén sea.
+        Mercadería rota, no conforme u observada, o materiales de almacén, sin importar de qué almacén sea.
       </p>
 
       <div className="mt-6 rounded-card border border-outline-variant bg-surface-container-lowest p-6">
-        <NuevoDanadoForm nombresSugeridos={nombresSugeridos} />
+        <NuevoDanadoForm nombresSugeridos={nombresSugeridos} racks={racks.map((r) => r.numero)} />
       </div>
     </div>
   );

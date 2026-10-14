@@ -22,6 +22,7 @@ enum Rol {
 enum NombreAlmacen {
   CRAMER
   SACCO
+  FRACCIONAMIENTO
 }
 
 enum TipoUbicacion {
@@ -51,6 +52,8 @@ enum TipoMovimiento {
 enum MotivoDano {
   ROTO
   NC
+  OBSERVADO
+  MATERIAL
 }
 
 model Usuario {
@@ -65,6 +68,7 @@ model Usuario {
   ingresos         Ingreso[]
   movimientos      Movimiento[]
   productosDanados ProductoDanado[]
+  consumosDanados  ConsumoDanado[]
 }
 
 model Almacen {
@@ -222,18 +226,34 @@ model UbicacionStock {
 }
 
 // --- Sistema "Roto / NC" ---
-// Aparte de CRAMER/SACCO/Ubicación: registra mercadería que llegó dañada o
-// no conforme, sin importar de qué almacén sea — solo nombre, cantidad y
-// dónde quedó físicamente, para poder reportarlo.
+// Aparte de CRAMER/SACCO/Ubicación: registra mercadería dañada, no conforme,
+// observada o materiales de almacén, sin importar de qué almacén sea. `cantidad`
+// es lo que queda disponible: cada consumo la descuenta y deja su historial en
+// ConsumoDanado.
 model ProductoDanado {
   id             String     @id @default(cuid())
   nombreProducto String
   motivo         MotivoDano
+  lote           String?
   cantidad       Float
   unidad         String     @default("kg")
   ubicacion      String
+  paleta         String?
   observacion    String?
   usuarioId      String
   usuario        Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
   createdAt      DateTime   @default(now())
+
+  consumos ConsumoDanado[]
+}
+
+model ConsumoDanado {
+  id               String         @id @default(cuid())
+  productoDanadoId String
+  productoDanado   ProductoDanado @relation(fields: [productoDanadoId], references: [id], onDelete: Restrict)
+  cantidad         Float
+  observacion      String?
+  usuarioId        String
+  usuario          Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  createdAt        DateTime       @default(now())
 }
