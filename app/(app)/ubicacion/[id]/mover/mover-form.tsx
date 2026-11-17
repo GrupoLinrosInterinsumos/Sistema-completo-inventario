@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
+import { rackInvertido } from "@/lib/racks";
 import { ZONAS_FIJAS } from "@/lib/ubicaciones-fijas";
 import { moverUbicacionAction } from "../../actions";
 import { RackPicker } from "../../rack-picker";
@@ -105,6 +106,7 @@ export function MoverForm({ itemId, racks, ocupadas }: { itemId: string; racks: 
                   ocupadas={ocupadasDelRack}
                   seleccionadas={celda ? [celda] : []}
                   onAlternar={alternarCelda}
+                  invertido={rackInvertido(rackSeleccionado.numero)}
                 />
               </div>
             ) : null}

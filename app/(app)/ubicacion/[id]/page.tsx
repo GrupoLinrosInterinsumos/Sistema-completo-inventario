@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatFechaUTC } from "@/lib/format";
 import { fechaDesdeOrdenIngreso } from "@/lib/ubicacion";
+import { rackInvertido } from "@/lib/racks";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { LinkButton } from "@/app/components/ui/link-button";
@@ -61,6 +62,7 @@ export default async function UbicacionDetallePage({
             columnas={item.rack.columnas}
             filaResaltada={item.fila}
             columnaResaltada={item.columna}
+            invertido={rackInvertido(item.rack.numero)}
           />
         ) : (
           <div className="flex flex-col items-center gap-3 rounded-card border border-outline-variant bg-surface-container-lowest p-10 text-center">

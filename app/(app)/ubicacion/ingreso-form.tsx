@@ -3,6 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import { useActionState } from "react";
 import { Button } from "@/app/components/ui/button";
+import { rackInvertido } from "@/lib/racks";
 import { NOMBRES_PRODUCTO_FIJOS, ZONAS_FIJAS } from "@/lib/ubicaciones-fijas";
 import { crearUbicacionStockAction, type UbicacionFormState } from "./actions";
 import { RackPicker } from "./rack-picker";
@@ -130,6 +131,7 @@ export function UbicacionIngresoForm({
                   ocupadas={ocupadasDelRack}
                   seleccionadas={celdas}
                   onAlternar={alternarCelda}
+                  invertido={rackInvertido(rackSeleccionado.numero)}
                 />
               </div>
             ) : null}

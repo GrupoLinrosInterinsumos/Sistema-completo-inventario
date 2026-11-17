@@ -2,10 +2,12 @@ import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { condicionesPorPalabra } from "@/lib/search";
 import { formatFechaUTC } from "@/lib/format";
-import { fechaDesdeOrdenIngreso, fechaEfectivaUbicacion, labelUbicacion } from "@/lib/ubicacion";
+import { fechaDesdeOrdenIngreso, fechaEfectivaUbicacion } from "@/lib/ubicacion";
 import { LiveSearch } from "@/app/components/ui/live-search";
-import { ResultadosLista, type ResultadoUnificado } from "./resultados-lista";
+import { ResultadosLista, type ResultadoUbicacion } from "./resultados-lista";
 import { DeshacerToast } from "./deshacer-toast";
+
+const comparar = (a: string, b: string) => a.localeCompare(b, "es", { numeric: true, sensitivity: "base" });
 
 export default async function UbicacionPage({
   searchParams,
@@ -13,72 +15,48 @@ export default async function UbicacionPage({
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim() : "";
 
-  // Búsqueda unificada: un producto puede estar en un rack/zona de Ubicación
-  // O en el stock propio de CRAMER/SACCO (paletas/refrigeradoras) — se
-  // buscan las dos fuentes a la vez para que "encontrar dónde está" cubra
-  // todo lo que se ha cargado, sin importar el sistema.
-  const [ubicaciones, stockCramerSacco] = q
-    ? await Promise.all([
-        prisma.ubicacionStock.findMany({
-          where: { AND: condicionesPorPalabra("nombreProducto", q) },
-          include: { rack: true },
-        }),
-        prisma.inventarioActual.findMany({
-          where: {
-            cantidadDisponible: { gt: 0 },
-            producto: {
-              OR: [
-                { AND: condicionesPorPalabra("nombreSabor", q) },
-                { AND: condicionesPorPalabra("codigo", q) },
-              ],
-            },
-          },
-          include: { producto: true, almacen: true },
-          orderBy: { fVencimiento: "asc" },
-        }),
-      ])
-    : [[], []];
+  // Solo lo que está en el módulo de Ubicación (racks y zonas): el stock de
+  // CRAMER, SACCO y Fraccionamiento se consulta en sus propios módulos.
+  const ubicaciones = q
+    ? await prisma.ubicacionStock.findMany({
+        where: { AND: condicionesPorPalabra("nombreProducto", q) },
+        include: { rack: true },
+      })
+    : [];
 
   const qParam = q ? `?q=${encodeURIComponent(q)}` : "";
-  const resultados: (ResultadoUnificado & { fechaOrden: number })[] = [
-    ...ubicaciones.map((r) => ({
-      id: r.id,
-      nombreProducto: r.nombreProducto,
-      ubicacion: r.rack ? `Rack ${r.rack.numero} — ${r.fila}${r.columna}` : (r.areaLibre ?? ""),
-      href: `/ubicacion/${r.id}${qParam}`,
-      origen: "UBICACION" as const,
-      fechaOrden: fechaEfectivaUbicacion(r),
-      lote: r.lote,
-      vencimiento: r.fVencimiento
-        ? formatFechaUTC(r.fVencimiento)
-        : (() => {
-            const fecha = fechaDesdeOrdenIngreso(r.ordenIngreso);
-            return fecha ? formatFechaUTC(fecha) : null;
-          })(),
-    })),
-    ...stockCramerSacco.map((f) => ({
-      id: f.id,
-      nombreProducto: f.producto.nombreSabor,
-      ubicacion: `${labelUbicacion(f.almacen.tipoUbicacion)} ${f.ubicacionNumero} / Caja ${f.nCaja}`,
-      href: `/ubicacion/stock/${f.id}${qParam}`,
-      origen: f.almacen.nombre,
-      fechaOrden: f.fVencimiento.getTime(),
-      lote: f.lote,
-      vencimiento: formatFechaUTC(f.fVencimiento),
-      stock: { disponible: f.cantidadDisponible, unidad: "kg" },
-    })),
-  ];
+  const resultados: (ResultadoUbicacion & { fechaOrden: number })[] = ubicaciones.map((r) => ({
+    id: r.id,
+    nombreProducto: r.nombreProducto,
+    ubicacion: r.rack ? `Rack ${r.rack.numero} — ${r.fila}${r.columna}` : (r.areaLibre ?? ""),
+    href: `/ubicacion/${r.id}${qParam}`,
+    fechaOrden: fechaEfectivaUbicacion(r),
+    lote: r.lote,
+    vencimiento: r.fVencimiento
+      ? formatFechaUTC(r.fVencimiento)
+      : (() => {
+          const fecha = fechaDesdeOrdenIngreso(r.ordenIngreso);
+          return fecha ? formatFechaUTC(fecha) : null;
+        })(),
+  }));
 
   // Ubicación "NC" (no consta) es una posición sin registrar — se manda al
-  // final en vez de mezclarse con resultados que sí tienen dónde está. El
-  // resto se ordena por la fecha de vencimiento más próxima (o su
-  // equivalente para filas antiguas que solo tienen N° de ingreso).
+  // final. El resto va primero por fecha de vencimiento (o su equivalente
+  // para filas antiguas que solo tienen N° de ingreso) y, a igual
+  // vencimiento, por correlativo de lote (A605012 antes que A605014); lo que
+  // no tiene lote queda después de lo que sí. Por último, por ubicación.
   const sinUbicacionClara = (u: string) => u.trim().toUpperCase() === "NC";
   resultados.sort((a, b) => {
     const aSinUbic = Number(sinUbicacionClara(a.ubicacion));
     const bSinUbic = Number(sinUbicacionClara(b.ubicacion));
     if (aSinUbic !== bSinUbic) return aSinUbic - bSinUbic;
-    return a.fechaOrden - b.fechaOrden;
+    if (a.fechaOrden !== b.fechaOrden) return a.fechaOrden - b.fechaOrden;
+    if (!a.lote !== !b.lote) return a.lote ? -1 : 1;
+    if (a.lote && b.lote) {
+      const porLote = comparar(a.lote, b.lote);
+      if (porLote !== 0) return porLote;
+    }
+    return comparar(a.ubicacion, b.ubicacion);
   });
 
   const sugerencias = [...new Set(resultados.map((r) => r.nombreProducto))];
@@ -89,7 +67,8 @@ export default async function UbicacionPage({
       <div>
         <h1 className="text-headline-md text-on-surface">Ubicación</h1>
         <p className="mt-1 text-body-sm text-on-surface-variant">
-          Busca un producto para ver en qué rack está. Ordenado por el lote que llegó primero.
+          Busca un producto para ver en qué rack o zona está. Ordenado por fecha de vencimiento y, a igual
+          vencimiento, por lote.
         </p>
       </div>
 

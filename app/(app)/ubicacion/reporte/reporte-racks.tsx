@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import { rackInvertido } from "@/lib/racks";
 import { RackOcupacion } from "./rack-ocupacion";
 
 type Item = { id: string; nombreProducto: string };
@@ -22,14 +25,42 @@ export function ReporteRacks({ racks, filasBusqueda }: { racks: RackData[]; fila
   const [rackId, setRackId] = useState(racks[0]?.id ?? "");
   const [busqueda, setBusqueda] = useState("");
   const [mostrarTodos, setMostrarTodos] = useState(false);
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const router = useRouter();
 
   const rackActual = racks.find((r) => r.id === rackId) ?? racks[0];
 
+  // Ordenadas por rack y celda para que el reparto al mover en bloque sea
+  // predecible.
   const coincidencias = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     if (!q) return [];
-    return filasBusqueda.filter((f) => f.nombreProducto.toLowerCase().includes(q));
+    return filasBusqueda
+      .filter((f) => f.nombreProducto.toLowerCase().includes(q))
+      .sort((a, b) => a.rackNumero - b.rackNumero || a.fila.localeCompare(b.fila) || a.columna - b.columna);
   }, [busqueda, filasBusqueda]);
+
+  const todasMarcadas = coincidencias.length > 0 && coincidencias.every((f) => seleccion.has(f.id));
+
+  function alternarSeleccion(id: string) {
+    setSeleccion((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function alternarTodas() {
+    setSeleccion(todasMarcadas ? new Set() : new Set(coincidencias.map((f) => f.id)));
+  }
+
+  function moverSeleccionadas() {
+    const ids = coincidencias.filter((f) => seleccion.has(f.id)).map((f) => f.id);
+    router.push(`/ubicacion/mover-bloque?${new URLSearchParams({ ids: ids.join(","), desde: "reporte" }).toString()}`);
+  }
+
+  const seleccionadasVisibles = coincidencias.filter((f) => seleccion.has(f.id)).length;
 
   return (
     <div>
@@ -49,9 +80,35 @@ export function ReporteRacks({ racks, filasBusqueda }: { racks: RackData[]; fila
 
       {busqueda.trim() ? (
         <div className="mt-4 overflow-hidden rounded-card border border-outline-variant bg-surface-container-lowest">
+          {coincidencias.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant bg-surface-container-low px-4 py-2.5">
+              <label className="flex items-center gap-2 text-sm font-medium text-on-surface">
+                <input
+                  type="checkbox"
+                  checked={todasMarcadas}
+                  onChange={alternarTodas}
+                  className="h-5 w-5 shrink-0 rounded border-outline-variant text-primary focus:ring-primary"
+                />
+                {seleccionadasVisibles > 0
+                  ? `${seleccionadasVisibles} de ${coincidencias.length} seleccionada${seleccionadasVisibles === 1 ? "" : "s"}`
+                  : `Seleccionar todas (${coincidencias.length})`}
+              </label>
+              {seleccionadasVisibles > 0 ? (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setSeleccion(new Set())}>
+                    Cancelar
+                  </Button>
+                  <Button size="sm" onClick={moverSeleccionadas}>
+                    Mover seleccionadas
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <table className="min-w-full divide-y divide-outline-variant">
             <thead className="bg-surface-container">
               <tr>
+                <th className="w-10 px-4 py-2" />
                 <th className="px-4 py-2 text-left text-xs font-medium uppercase text-on-surface-variant">Rack</th>
                 <th className="px-4 py-2 text-left text-xs font-medium uppercase text-on-surface-variant">Ubicación</th>
                 <th className="px-4 py-2 text-left text-xs font-medium uppercase text-on-surface-variant">Producto</th>
@@ -60,6 +117,15 @@ export function ReporteRacks({ racks, filasBusqueda }: { racks: RackData[]; fila
             <tbody className="divide-y divide-outline-variant">
               {coincidencias.map((f) => (
                 <tr key={f.id} className="transition-colors hover:bg-surface-container">
+                  <td className="px-4 py-2">
+                    <input
+                      type="checkbox"
+                      checked={seleccion.has(f.id)}
+                      onChange={() => alternarSeleccion(f.id)}
+                      aria-label={`Seleccionar ${f.nombreProducto} en Rack ${f.rackNumero} ${f.fila}${f.columna}`}
+                      className="h-5 w-5 shrink-0 rounded border-outline-variant text-primary focus:ring-primary"
+                    />
+                  </td>
                   <td className="px-4 py-2 text-sm text-on-surface">Rack {f.rackNumero}</td>
                   <td className="px-4 py-2 text-sm font-semibold text-on-surface">
                     {f.fila}
@@ -74,7 +140,7 @@ export function ReporteRacks({ racks, filasBusqueda }: { racks: RackData[]; fila
               ))}
               {coincidencias.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-sm text-on-surface-variant">
+                  <td colSpan={4} className="px-4 py-6 text-center text-sm text-on-surface-variant">
                     No se encontró ese producto en ningún rack.
                   </td>
                 </tr>
@@ -155,6 +221,7 @@ export function ReporteRacks({ racks, filasBusqueda }: { racks: RackData[]; fila
                   filaMax={rackActual.filaMax}
                   columnas={rackActual.columnas}
                   celdas={rackActual.celdas}
+                  invertido={rackInvertido(rackActual.numero)}
                 />
               </div>
 

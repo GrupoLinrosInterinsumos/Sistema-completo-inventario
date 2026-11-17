@@ -178,6 +178,57 @@ export async function moverUbicacionAction(
   return { id };
 }
 
+export type DestinoBloque =
+  | { id: string; areaLibre: string }
+  | { id: string; rackId: string; fila: string; columna: number };
+
+// Mueve varias ubicaciones a la vez: o todas a una misma zona, o cada una a su
+// propia celda de rack. Todo o nada: si una celda no es válida, no se mueve
+// ninguna.
+export async function moverEnBloqueAction(
+  destinos: DestinoBloque[]
+): Promise<{ error: string } | { ok: true; cantidad: number }> {
+  await requireSession();
+  if (destinos.length === 0) return { error: "No hay ubicaciones para mover." };
+  if (new Set(destinos.map((d) => d.id)).size !== destinos.length) {
+    return { error: "Hay ubicaciones repetidas en la selección." };
+  }
+
+  const racks = await prisma.rack.findMany();
+  const rackPorId = new Map(racks.map((r) => [r.id, r]));
+
+  const datos: { id: string; data: { rackId: string | null; fila: string | null; columna: number | null; areaLibre: string | null } }[] = [];
+  for (const d of destinos) {
+    if ("areaLibre" in d) {
+      if (!esZonaFija(d.areaLibre)) return { error: "Elige una zona de la lista." };
+      datos.push({ id: d.id, data: { rackId: null, fila: null, columna: null, areaLibre: d.areaLibre } });
+      continue;
+    }
+    const rack = rackPorId.get(d.rackId);
+    if (!rack) return { error: "Rack no válido." };
+    const fila = String(d.fila ?? "").toUpperCase();
+    const columna = Number(d.columna);
+    if (fila.length !== 1 || fila < rack.filaMin || fila > rack.filaMax) {
+      return { error: `La fila debe estar entre ${rack.filaMin} y ${rack.filaMax} para el Rack ${rack.numero}.` };
+    }
+    if (!columna || columna < 1 || columna > rack.columnas) {
+      return { error: `La columna debe estar entre 1 y ${rack.columnas} para el Rack ${rack.numero}.` };
+    }
+    datos.push({ id: d.id, data: { rackId: rack.id, fila, columna, areaLibre: null } });
+  }
+
+  const existentes = await prisma.ubicacionStock.count({ where: { id: { in: datos.map((d) => d.id) } } });
+  if (existentes !== datos.length) {
+    return { error: "Alguna ubicación ya no existe. Vuelve a buscar e inténtalo de nuevo." };
+  }
+
+  await prisma.$transaction(datos.map((d) => prisma.ubicacionStock.update({ where: { id: d.id }, data: d.data })));
+
+  revalidatePath("/ubicacion");
+  revalidatePath("/ubicacion/reporte");
+  return { ok: true, cantidad: datos.length };
+}
+
 export async function marcarVaciosAction(
   ids: string[]
 ): Promise<{ error: string } | { ok: true; cantidad: number }> {

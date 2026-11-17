@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import { RackFrame } from "./rack-frame";
+import { RackScroll } from "./rack-scroll";
 
 type Props = {
   filaMin: string;
@@ -7,9 +8,11 @@ type Props = {
   columnas: number;
   filaResaltada: string;
   columnaResaltada: number;
+  // Racks cuya numeración arranca por la derecha (ver lib/racks.ts).
+  invertido?: boolean;
 };
 
-export function RackVisual({ filaMin, filaMax, columnas, filaResaltada, columnaResaltada }: Props) {
+export function RackVisual({ filaMin, filaMax, columnas, filaResaltada, columnaResaltada, invertido = false }: Props) {
   const filaMinCode = filaMin.charCodeAt(0);
   const filaMaxCode = filaMax.charCodeAt(0);
 
@@ -17,16 +20,26 @@ export function RackVisual({ filaMin, filaMax, columnas, filaResaltada, columnaR
   const filas: string[] = [];
   for (let c = filaMaxCode; c >= filaMinCode; c--) filas.push(String.fromCharCode(c));
 
-  const columnasArr = Array.from({ length: columnas }, (_, i) => i + 1);
+  const columnasArr = Array.from({ length: columnas }, (_, i) => (invertido ? columnas - i : i + 1));
+  const sombraDivisor = invertido
+    ? "inset 2px 0 0 0 var(--color-primary)"
+    : "inset -2px 0 0 0 var(--color-primary)";
 
   return (
     <RackFrame>
-      <div className="overflow-x-auto rounded-card border border-outline-variant bg-surface-container-lowest p-4">
+      <RackScroll
+        alFinal={invertido}
+        className="overflow-x-auto rounded-card border border-outline-variant bg-surface-container-lowest p-4"
+      >
         <div
           className="grid w-max gap-0.5"
-          style={{ gridTemplateColumns: `2rem repeat(${columnas}, minmax(1.75rem, 1fr))` }}
+          style={{
+            gridTemplateColumns: invertido
+              ? `repeat(${columnas}, minmax(1.75rem, 1fr)) 2rem`
+              : `2rem repeat(${columnas}, minmax(1.75rem, 1fr))`,
+          }}
         >
-          <div />
+          {invertido ? null : <div />}
           {columnasArr.map((c) => (
             <div
               key={`col-${c}`}
@@ -35,19 +48,22 @@ export function RackVisual({ filaMin, filaMax, columnas, filaResaltada, columnaR
               {c}
             </div>
           ))}
+          {invertido ? <div /> : null}
 
           {filas.map((fila) => (
             <Fragment key={fila}>
-              <div className="flex items-center justify-center pr-1 text-xs font-semibold text-on-surface-variant">
-                {fila}
-              </div>
+              {invertido ? null : (
+                <div className="flex items-center justify-center pr-1 text-xs font-semibold text-on-surface-variant">
+                  {fila}
+                </div>
+              )}
               {columnasArr.map((c) => {
                 const activa = fila === filaResaltada && c === columnaResaltada;
                 const divisor = c % 2 === 0 && c !== columnas;
                 return (
                   <div
                     key={`${fila}-${c}`}
-                    style={divisor && !activa ? { boxShadow: "inset -2px 0 0 0 var(--color-primary)" } : undefined}
+                    style={divisor && !activa ? { boxShadow: sombraDivisor } : undefined}
                     className={`m-0.5 flex aspect-square items-center justify-center rounded text-[9px] font-semibold transition-colors ${
                       activa
                         ? "bg-primary text-on-primary ring-2 ring-primary-container ring-offset-1"
@@ -58,10 +74,15 @@ export function RackVisual({ filaMin, filaMax, columnas, filaResaltada, columnaR
                   </div>
                 );
               })}
+              {invertido ? (
+                <div className="flex items-center justify-center pl-1 text-xs font-semibold text-on-surface-variant">
+                  {fila}
+                </div>
+              ) : null}
             </Fragment>
           ))}
         </div>
-      </div>
+      </RackScroll>
     </RackFrame>
   );
 }
